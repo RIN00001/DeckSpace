@@ -8,45 +8,49 @@
 import Foundation
 import FirebaseFirestore
 
-struct Deck: Identifiable, Codable {
+struct Deck: Identifiable, Codable, Equatable {
     @DocumentID var id: String?
-    
+
     var ownerId: String
     var ownerName: String
-    
+
     var title: String
     var description: String
     var category: String
+
+    // Firebase Storage is skipped for prototype.
+    // Keep imageUrl for future compatibility.
     var coverImageUrl: String?
-    
+    var coverIconName: String?
+
     var stageCount: Int
     var currentStageId: String?
-    
+
     var isScheduled: Bool
     var scheduledDays: [String]
     var scheduledTime: String?
-    
+
     var isPublished: Bool
     var isDownloadedCopy: Bool
     var isRemix: Bool
-    
+
     var originalCreatorId: String
     var originalCreatorName: String
     var originalDeckId: String
     var originalDeckTitle: String
-    
+
     var sourceOwnerId: String?
     var sourceOwnerName: String?
     var sourceDeckId: String?
     var sourceDeckTitle: String?
-    
+
     var remixNote: String?
     var downloadCount: Int
-    
+
     var createdAt: Date
     var updatedAt: Date
     var publishedAt: Date?
-    
+
     init(
         id: String? = nil,
         ownerId: String,
@@ -55,6 +59,7 @@ struct Deck: Identifiable, Codable {
         description: String,
         category: String,
         coverImageUrl: String? = nil,
+        coverIconName: String? = "book.closed.fill",
         stageCount: Int = 0,
         currentStageId: String? = nil,
         isScheduled: Bool = false,
@@ -84,6 +89,7 @@ struct Deck: Identifiable, Codable {
         self.description = description
         self.category = category
         self.coverImageUrl = coverImageUrl
+        self.coverIconName = coverIconName
         self.stageCount = stageCount
         self.currentStageId = currentStageId
         self.isScheduled = isScheduled

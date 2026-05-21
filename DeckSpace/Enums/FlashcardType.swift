@@ -11,12 +11,10 @@ enum FlashcardType: String, Codable, CaseIterable, Identifiable {
     case intro
     case multipleChoice
     case paragraph
-    
-    var id: String {
-        rawValue
-    }
-    
-    var displayName: String {
+
+    var id: String { rawValue }
+
+    var title: String {
         switch self {
         case .intro:
             return "Intro"
@@ -24,6 +22,26 @@ enum FlashcardType: String, Codable, CaseIterable, Identifiable {
             return "Multiple Choice"
         case .paragraph:
             return "Paragraph"
+        }
+    }
+
+    var iconName: String {
+        switch self {
+        case .intro:
+            return "info.circle.fill"
+        case .multipleChoice:
+            return "checklist.checked"
+        case .paragraph:
+            return "text.alignleft"
+        }
+    }
+
+    var isScored: Bool {
+        switch self {
+        case .intro:
+            return false
+        case .multipleChoice, .paragraph:
+            return true
         }
     }
 }

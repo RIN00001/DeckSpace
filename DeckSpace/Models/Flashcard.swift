@@ -8,42 +8,47 @@
 import Foundation
 import FirebaseFirestore
 
-struct Flashcard: Identifiable, Codable {
+struct Flashcard: Identifiable, Codable, Equatable {
     @DocumentID var id: String?
-    
+
     var deckId: String
     var stageId: String
-    
+
     var type: FlashcardType
     var orderIndex: Int
     var difficultyLevel: DifficultyLevel
-    
+
     var promptText: String?
     var explanationText: String?
+
+    // Firebase Storage is skipped for prototype.
+    // Keep imageUrl for future compatibility.
     var imageUrl: String?
-    
+    var imageIconName: String?
+
     var masteryScore: Int
     var masteryThreshold: Int
     var isMastered: Bool
-    
+
     var correctCount: Int
     var incorrectCount: Int
     var correctStreak: Int
-    
     var lastReviewedAt: Date?
+
     var createdAt: Date
     var updatedAt: Date
-    
+
     init(
         id: String? = nil,
         deckId: String,
         stageId: String,
         type: FlashcardType,
-        orderIndex: Int,
-        difficultyLevel: DifficultyLevel,
+        orderIndex: Int = 0,
+        difficultyLevel: DifficultyLevel = .easy,
         promptText: String? = nil,
         explanationText: String? = nil,
         imageUrl: String? = nil,
+        imageIconName: String? = nil,
         masteryScore: Int = 0,
         masteryThreshold: Int = 8,
         isMastered: Bool = false,
@@ -63,6 +68,7 @@ struct Flashcard: Identifiable, Codable {
         self.promptText = promptText
         self.explanationText = explanationText
         self.imageUrl = imageUrl
+        self.imageIconName = imageIconName
         self.masteryScore = masteryScore
         self.masteryThreshold = masteryThreshold
         self.isMastered = isMastered
@@ -72,5 +78,14 @@ struct Flashcard: Identifiable, Codable {
         self.lastReviewedAt = lastReviewedAt
         self.createdAt = createdAt
         self.updatedAt = updatedAt
+    }
+
+    var priorityScore: Int {
+        let difficultyWeight = difficultyLevel.initialPriorityWeight
+        return difficultyWeight + (incorrectCount * 2) - correctCount - masteryScore
+    }
+
+    var isScored: Bool {
+        type.isScored
     }
 }

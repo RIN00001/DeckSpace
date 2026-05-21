@@ -8,20 +8,20 @@
 import Foundation
 import FirebaseFirestore
 
-struct Answer: Identifiable, Codable {
+struct Answer: Identifiable, Codable, Equatable {
     @DocumentID var id: String?
-    
+
     var flashcardId: String
     var text: String
     var isCorrect: Bool
     var orderIndex: Int
-    
+
     init(
         id: String? = nil,
         flashcardId: String,
         text: String,
-        isCorrect: Bool,
-        orderIndex: Int
+        isCorrect: Bool = false,
+        orderIndex: Int = 0
     ) {
         self.id = id
         self.flashcardId = flashcardId
