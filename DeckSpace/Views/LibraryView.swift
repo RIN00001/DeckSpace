@@ -43,16 +43,21 @@ struct LibraryView: View {
         ScrollView {
             LazyVStack(spacing: 14) {
                 ForEach(deckViewModel.decks) { deck in
-                    _DeckCardView(deck: deck)
-                        .contextMenu {
-                            Button(role: .destructive) {
-                                Task {
-                                    await deckViewModel.deleteDeck(deck)
-                                }
-                            } label: {
-                                Label("Delete Deck", systemImage: "trash")
+                    NavigationLink {
+                        DeckDetailView(deck: deck)
+                    } label: {
+                        _DeckCardView(deck: deck)
+                    }
+                    .buttonStyle(.plain)
+                    .contextMenu {
+                        Button(role: .destructive) {
+                            Task {
+                                await deckViewModel.deleteDeck(deck)
                             }
+                        } label: {
+                            Label("Delete Deck", systemImage: "trash")
                         }
+                    }
                 }
 
                 if let errorMessage = deckViewModel.errorMessage {
