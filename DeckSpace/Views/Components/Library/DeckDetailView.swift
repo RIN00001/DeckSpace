@@ -6,11 +6,17 @@
 //
 
 import SwiftUI
+import FirebaseAuth
 
 struct DeckDetailView: View {
     let deck: Deck
 
     @StateObject private var stageViewModel = StageViewModel()
+    @StateObject private var discoverViewModel = DiscoverViewModel()
+
+    @State private var showingAddStageSheet = false
+    @State private var isPublished: Bool = false
+    @State private var isPublishing: Bool = false
 
     private var deckId: String {
         deck.id ?? ""
@@ -28,15 +34,101 @@ struct DeckDetailView: View {
                         .font(.footnote)
                         .foregroundStyle(.red)
                 }
+                
+                if let discoverError = discoverViewModel.errorMessage {
+                    Text(discoverError)
+                        .font(.footnote)
+                        .foregroundStyle(.red)
+                }
             }
             .padding()
         }
         .navigationTitle(deck.title)
         .navigationBarTitleDisplayMode(.inline)
         .task {
+            // Sinkronkan status tombol publish berdasarkan data awal dari model deck
+            isPublished = deck.isPublished
+            
             if !deckId.isEmpty {
                 await stageViewModel.fetchStages(deckId: deckId)
             }
+        }
+        .toolbar {
+            ToolbarItemGroup(placement: .topBarTrailing) {
+                
+                // 1. Tombol Publish (Hanya tampil untuk pemilik Deck asli)
+                if deck.ownerId == Auth.auth().currentUser?.uid {
+                    if isPublished {
+                        Text("Published")
+                            .font(.caption)
+                            .fontWeight(.bold)
+                            .foregroundStyle(.green)
+                            .padding(.trailing, 4)
+                    } else {
+                        Button {
+                            Task {
+                                isPublishing = true
+                                
+                                // Memanggil fungsi publish melalui DiscoverViewModel
+                                await discoverViewModel.publishDeck(deck)
+                                
+                                // Jika proses di DiscoverViewModel sukses tanpa error, ubah status UI
+                                if discoverViewModel.errorMessage == nil {
+                                    isPublished = true
+                                }
+                                
+                                isPublishing = false
+                            }
+                        } label: {
+                            if isPublishing {
+                                ProgressView()
+                            } else {
+                                Image(systemName: "globe")
+                            }
+                        }
+                        // Tombol di-disable jika sedang proses atau deck masih kosong (belum ada stage)
+                        .disabled(isPublishing || stageViewModel.stages.isEmpty)
+                    }
+                }
+
+                // 2. Tombol Tambah Stage
+                Button {
+                    showingAddStageSheet = true
+                } label: {
+                    Image(systemName: "plus")
+                }
+            }
+        }
+        .sheet(isPresented: $showingAddStageSheet) {
+            NavigationStack {
+                Form {
+                    Section(header: Text("Stage Information")) {
+                        TextField("Stage Title", text: $stageViewModel.title)
+                        TextField("Description", text: $stageViewModel.description)
+                    }
+                }
+                .navigationTitle("New Stage")
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .cancellationAction) {
+                        Button("Cancel") {
+                            stageViewModel.resetForm()
+                            showingAddStageSheet = false
+                        }
+                    }
+                    ToolbarItem(placement: .confirmationAction) {
+                        Button("Add") {
+                            Task {
+                                await stageViewModel.createStage(deckId: deckId)
+                                stageViewModel.resetForm()
+                                showingAddStageSheet = false
+                            }
+                        }
+                        .disabled(!stageViewModel.canCreateStage)
+                    }
+                }
+            }
+            .presentationDetents([.medium])
         }
     }
 
@@ -55,69 +147,63 @@ struct DeckDetailView: View {
 
                 VStack(alignment: .leading, spacing: 6) {
                     Text(deck.title)
-                        .font(.title2.bold())
-
+                        .font(.title2)
+                        .fontWeight(.bold)
+                    
                     Text(deck.category)
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
+                        .font(.caption)
+                        .fontWeight(.semibold)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 4)
+                        .background(Color.accentColor.opacity(0.12))
+                        .foregroundStyle(Color.accentColor)
+                        .clipShape(Capsule())
                 }
+            }
 
+            if !deck.description.isEmpty {
+                Text(deck.description)
+                    .font(.body)
+                    .foregroundStyle(.secondary)
+            }
+            
+            HStack {
+                Label("\(deck.stageCount) Stages", systemImage: "rectangle.stack.fill")
                 Spacer()
+                Text("By \(deck.ownerName)")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
             }
-
-            Text(deck.description)
-                .font(.body)
-                .foregroundStyle(.secondary)
-
-            HStack(spacing: 10) {
-                Label("\(deck.stageCount) stage", systemImage: "square.stack.3d.up.fill")
-
-                if deck.isScheduled {
-                    Label("Scheduled", systemImage: "calendar")
-                }
-
-                if deck.isPublished {
-                    Label("Published", systemImage: "globe")
-                }
-            }
-            .font(.caption)
+            .font(.subheadline)
             .foregroundStyle(.secondary)
+            
+            Divider()
         }
-        .padding()
-        .background(
-            RoundedRectangle(cornerRadius: 20)
-                .fill(Color.gray.opacity(0.1))
-        )
     }
 
     private var stageSection: some View {
         VStack(alignment: .leading, spacing: 14) {
-            HStack {
-                Text("Stages")
-                    .font(.title3.bold())
-
-                Spacer()
-
-                if stageViewModel.isLoading {
-                    ProgressView()
+            Text("Stages")
+                .font(.title3)
+                .fontWeight(.bold)
+            
+            if stageViewModel.stages.isEmpty {
+                VStack(spacing: 8) {
+                    Image(systemName: "folder.badge.plus")
+                        .font(.largeTitle)
+                        .foregroundStyle(.secondary)
+                    Text("No stages available yet")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
                 }
-            }
-
-            _StageFormView(
-                viewModel: stageViewModel,
-                deckId: deckId
-            )
-
-            if stageViewModel.stages.isEmpty && !stageViewModel.isLoading {
-                Text("No stage found.")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
+                .frame(maxWidth: .infinity, minHeight: 120)
             } else {
-                VStack(spacing: 12) {
+                LazyVStack(spacing: 12) {
                     ForEach(stageViewModel.stages) { stage in
                         NavigationLink {
                             StageDetailView(deck: deck, stage: stage)
                         } label: {
+                            // Menggunakan komponen terpisah _StageRowView.swift Anda
                             _StageRowView(stage: stage)
                         }
                         .buttonStyle(.plain)
