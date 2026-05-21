@@ -12,26 +12,31 @@ struct RootView: View {
     @EnvironmentObject private var authViewModel: AuthViewModel
     
     var body: some View {
-        NavigationStack {
-            VStack(spacing: 20) {
-                VStack(spacing: 8) {
-                    Text("DeckSpace")
-                        .font(.largeTitle)
-                        .fontWeight(.bold)
-                    
-                    Text("Logged in as \(authViewModel.currentUser?.username ?? "Unknown User")")
-                        .foregroundStyle(.secondary)
+        TabView {
+            HomeView()
+                .tabItem {
+                    Label("Home", systemImage: "house.fill")
                 }
-                
-                Button(role: .destructive) {
-                    authViewModel.logout()
-                } label: {
-                    Text("Logout")
-                        .fontWeight(.semibold)
+            
+            LibraryView()
+                .tabItem {
+                    Label("Library", systemImage: "books.vertical.fill")
                 }
-            }
-            .padding()
-            .navigationTitle("Home")
+            
+            CreateDeckView()
+                .tabItem {
+                    Label("Create", systemImage: "plus.circle.fill")
+                }
+            
+            DiscoverView()
+                .tabItem {
+                    Label("Discover", systemImage: "safari.fill")
+                }
+            
+            ProfileView()
+                .tabItem {
+                    Label("Profile", systemImage: "person.crop.circle.fill")
+                }
         }
     }
 }

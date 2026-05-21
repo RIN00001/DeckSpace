@@ -8,31 +8,31 @@
 import Foundation
 import FirebaseFirestore
 
-struct Stage: Identifiable, Codable {
+struct Stage: Identifiable, Codable, Equatable {
     @DocumentID var id: String?
-    
+
     var deckId: String
+
     var title: String
     var description: String
-    
     var orderIndex: Int
-    
+
     var isUnlocked: Bool
     var isCompleted: Bool
-    
+
     var requiredCorrectRate: Double
     var bestCorrectRate: Double
     var lastCompletedAt: Date?
-    
+
     var createdAt: Date
     var updatedAt: Date
-    
+
     init(
         id: String? = nil,
         deckId: String,
         title: String,
-        description: String,
-        orderIndex: Int,
+        description: String = "",
+        orderIndex: Int = 0,
         isUnlocked: Bool = false,
         isCompleted: Bool = false,
         requiredCorrectRate: Double = 0.7,
