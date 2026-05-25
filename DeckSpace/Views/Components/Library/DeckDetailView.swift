@@ -21,6 +21,10 @@ struct DeckDetailView: View {
     private var deckId: String {
         deck.id ?? ""
     }
+    
+    private var activeStage: Stage? {
+        stageViewModel.stages.first(where: { $0.isUnlocked && !$0.isCompleted }) ?? stageViewModel.stages.first
+    }
 
     var body: some View {
         ScrollView {
@@ -215,6 +219,20 @@ struct DeckDetailView: View {
                             } label: {
                                 Label("Delete Stage", systemImage: "trash")
                             }
+                        }
+                    }
+                }
+                
+                // Take active stage from a deck (stages that have been done)
+                if let stageToStudy = activeStage {
+                    NavigationLink {
+                        StudySessionView(
+                            userId: Auth.auth().currentUser?.uid ?? "", deck: deck, stage: stageToStudy
+                        )
+                    } label: {
+                        HStack {
+                            Image(systemName: "play.fill")
+                            Text("Start Studying (\(stageToStudy.title))")
                         }
                     }
                 }
