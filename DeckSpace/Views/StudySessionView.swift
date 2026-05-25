@@ -72,6 +72,9 @@ struct StudySessionView: View {
             .task {
                 await studySession.buildSessionQUeue(userId: userId, deckId: deck.id ?? "", stageId: stage.id ?? "")
             }
+            .onChange(of: studySession.currentItemIndex) { _ in
+                resetParagraphContext()
+            }
     }
     
     // MARK: - Header Section
