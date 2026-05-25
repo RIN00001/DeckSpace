@@ -12,7 +12,16 @@ struct FlashcardDetailView: View {
     let stage: Stage
     let flashcard: Flashcard
 
+    @State private var editableFlashcard: Flashcard
     @StateObject private var detailViewModel = FlashcardDetailViewModel()
+    @StateObject private var flashcardViewModel = FlashcardViewModel()
+
+    init(deck: Deck, stage: Stage, flashcard: Flashcard) {
+        self.deck = deck
+        self.stage = stage
+        self.flashcard = flashcard
+        _editableFlashcard = State(initialValue: flashcard)
+    }
 
     private var deckId: String {
         deck.id ?? ""
@@ -23,7 +32,7 @@ struct FlashcardDetailView: View {
     }
 
     private var flashcardId: String {
-        flashcard.id ?? ""
+        editableFlashcard.id ?? ""
     }
 
     var body: some View {
@@ -38,19 +47,56 @@ struct FlashcardDetailView: View {
                         .font(.footnote)
                         .foregroundStyle(.red)
                 }
+
+                if let errorMessage = flashcardViewModel.errorMessage {
+                    Text(errorMessage)
+                        .font(.footnote)
+                        .foregroundStyle(.red)
+                }
             }
             .padding()
         }
-        .navigationTitle(flashcard.type.title)
+        .navigationTitle(editableFlashcard.type.title)
         .navigationBarTitleDisplayMode(.inline)
         .task {
-            if !deckId.isEmpty && !stageId.isEmpty && !flashcardId.isEmpty {
-                await detailViewModel.fetchAnswers(
-                    deckId: deckId,
-                    stageId: stageId,
-                    flashcardId: flashcardId
-                )
+            await fetchAnswersIfNeeded()
+        }
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                NavigationLink {
+                    EditFlashcardView(
+                        flashcard: editableFlashcard,
+                        answers: detailViewModel.answers
+                    ) { updatedFlashcard, updatedAnswers in
+                        await flashcardViewModel.updateFlashcard(
+                            deckId: deckId,
+                            stageId: stageId,
+                            flashcard: updatedFlashcard,
+                            answers: updatedAnswers
+                        )
+
+                        editableFlashcard = updatedFlashcard
+
+                        await detailViewModel.fetchAnswers(
+                            deckId: deckId,
+                            stageId: stageId,
+                            flashcardId: flashcardId
+                        )
+                    }
+                } label: {
+                    Label("Edit", systemImage: "pencil")
+                }
             }
+        }
+    }
+
+    private func fetchAnswersIfNeeded() async {
+        if !deckId.isEmpty && !stageId.isEmpty && !flashcardId.isEmpty {
+            await detailViewModel.fetchAnswers(
+                deckId: deckId,
+                stageId: stageId,
+                flashcardId: flashcardId
+            )
         }
     }
 
@@ -68,10 +114,10 @@ struct FlashcardDetailView: View {
                 }
 
                 VStack(alignment: .leading, spacing: 6) {
-                    Text(flashcard.type.title)
+                    Text(editableFlashcard.type.title)
                         .font(.title2.bold())
 
-                    Text(flashcard.difficultyLevel.title)
+                    Text(editableFlashcard.difficultyLevel.title)
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                 }
@@ -80,9 +126,9 @@ struct FlashcardDetailView: View {
             }
 
             HStack(spacing: 10) {
-                Label("Score \(flashcard.masteryScore)/\(flashcard.masteryThreshold)", systemImage: "chart.bar.fill")
+                Label("Score \(editableFlashcard.masteryScore)/\(editableFlashcard.masteryThreshold)", systemImage: "chart.bar.fill")
 
-                if flashcard.isMastered {
+                if editableFlashcard.isMastered {
                     Label("Mastered", systemImage: "checkmark.seal.fill")
                 }
             }
@@ -90,8 +136,8 @@ struct FlashcardDetailView: View {
             .foregroundStyle(.secondary)
 
             HStack(spacing: 10) {
-                Label("\(flashcard.correctCount) correct", systemImage: "checkmark.circle.fill")
-                Label("\(flashcard.incorrectCount) wrong", systemImage: "xmark.circle.fill")
+                Label("\(editableFlashcard.correctCount) correct", systemImage: "checkmark.circle.fill")
+                Label("\(editableFlashcard.incorrectCount) wrong", systemImage: "xmark.circle.fill")
             }
             .font(.caption)
             .foregroundStyle(.secondary)
@@ -105,7 +151,7 @@ struct FlashcardDetailView: View {
 
     @ViewBuilder
     private var contentSection: some View {
-        switch flashcard.type {
+        switch editableFlashcard.type {
         case .intro:
             introContent
 
@@ -122,12 +168,12 @@ struct FlashcardDetailView: View {
             Text("Explanation")
                 .font(.headline)
 
-            Text(flashcard.explanationText ?? "No explanation provided.")
+            Text(editableFlashcard.explanationText ?? "No explanation provided.")
                 .font(.body)
                 .foregroundStyle(.secondary)
                 .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .contentCardStyle()
+        .libraryContentCardStyle()
     }
 
     private var multipleChoiceContent: some View {
@@ -135,7 +181,7 @@ struct FlashcardDetailView: View {
             Text("Question")
                 .font(.headline)
 
-            Text(flashcard.promptText ?? "No question provided.")
+            Text(editableFlashcard.promptText ?? "No question provided.")
                 .font(.body)
                 .foregroundStyle(.secondary)
 
@@ -177,7 +223,7 @@ struct FlashcardDetailView: View {
                 }
             }
         }
-        .contentCardStyle()
+        .libraryContentCardStyle()
     }
 
     private var paragraphContent: some View {
@@ -185,7 +231,7 @@ struct FlashcardDetailView: View {
             Text("Question")
                 .font(.headline)
 
-            Text(flashcard.promptText ?? "No question provided.")
+            Text(editableFlashcard.promptText ?? "No question provided.")
                 .font(.body)
                 .foregroundStyle(.secondary)
 
@@ -213,20 +259,20 @@ struct FlashcardDetailView: View {
                     .foregroundStyle(.secondary)
             }
         }
-        .contentCardStyle()
+        .libraryContentCardStyle()
     }
 
     private var displayIconName: String {
-        if let imageIconName = flashcard.imageIconName, !imageIconName.isEmpty {
+        if let imageIconName = editableFlashcard.imageIconName, !imageIconName.isEmpty {
             return imageIconName
         }
 
-        return flashcard.type.iconName
+        return editableFlashcard.type.iconName
     }
 }
 
 private extension View {
-    func contentCardStyle() -> some View {
+    func libraryContentCardStyle() -> some View {
         self
             .padding()
             .frame(maxWidth: .infinity, alignment: .leading)

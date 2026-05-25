@@ -262,4 +262,35 @@ final class FlashcardViewModel: ObservableObject {
 
         paragraphModelAnswer = ""
     }
+    
+    func updateFlashcard(
+        deckId: String,
+        stageId: String,
+        flashcard: Flashcard,
+        answers: [AnswerDraft]
+    ) async {
+        guard let userId = currentUserId else {
+            errorMessage = "User is not logged in."
+            return
+        }
+
+        isLoading = true
+        errorMessage = nil
+
+        do {
+            try await flashcardService.updateFlashcard(
+                userId: userId,
+                deckId: deckId,
+                stageId: stageId,
+                flashcard: flashcard,
+                answers: answers
+            )
+
+            await fetchFlashcards(deckId: deckId, stageId: stageId)
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+
+        isLoading = false
+    }
 }

@@ -9,6 +9,7 @@ import SwiftUI
 
 struct AuthSecureField: View {
     
+    let id: String
     let title: String
     let placeholder: String
     @Binding var text: String
@@ -26,12 +27,15 @@ struct AuthSecureField: View {
                 Group {
                     if isPasswordVisible {
                         TextField(placeholder, text: $text)
+                            .id("\(id)-visible")
                     } else {
                         SecureField(placeholder, text: $text)
+                            .id("\(id)-secure")
                     }
                 }
                 .textInputAutocapitalization(.never)
                 .autocorrectionDisabled()
+                .textContentType(.oneTimeCode)
                 
                 Button {
                     isPasswordVisible.toggle()
@@ -39,6 +43,7 @@ struct AuthSecureField: View {
                     Image(systemName: isPasswordVisible ? "eye.slash" : "eye")
                         .foregroundStyle(.secondary)
                 }
+                .buttonStyle(.plain)
             }
             .padding()
             .background(
@@ -51,6 +56,7 @@ struct AuthSecureField: View {
 
 #Preview {
     AuthSecureField(
+        id: "password",
         title: "Password",
         placeholder: "Enter your password",
         text: .constant("")

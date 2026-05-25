@@ -30,6 +30,7 @@ struct LoginView: View {
                         )
                         
                         AuthSecureField(
+                            id: "login-password",
                             title: "Password",
                             placeholder: "Enter your password",
                             text: $password

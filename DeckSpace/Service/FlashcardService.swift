@@ -212,6 +212,72 @@ final class FlashcardService {
 
         try await batch.commit()
     }
+    
+    func updateFlashcard(
+        userId: String,
+        deckId: String,
+        stageId: String,
+        flashcard: Flashcard,
+        answers: [AnswerDraft]
+    ) async throws {
+        guard let flashcardId = flashcard.id else {
+            throw FlashcardServiceError.missingFlashcardId
+        }
+
+        let now = Date()
+
+        var updatedFlashcard = flashcard
+        updatedFlashcard.updatedAt = now
+
+        let flashcardRef = flashcardCollection(
+            userId: userId,
+            deckId: deckId,
+            stageId: stageId
+        )
+        .document(flashcardId)
+
+        try flashcardRef.setData(from: updatedFlashcard, merge: true)
+
+        let oldAnswersSnapshot = try await answerCollection(
+            userId: userId,
+            deckId: deckId,
+            stageId: stageId,
+            flashcardId: flashcardId
+        )
+        .getDocuments()
+
+        let batch = db.batch()
+
+        for document in oldAnswersSnapshot.documents {
+            batch.deleteDocument(document.reference)
+        }
+
+        for (index, answerDraft) in answers.enumerated() {
+            let answerRef = answerCollection(
+                userId: userId,
+                deckId: deckId,
+                stageId: stageId,
+                flashcardId: flashcardId
+            )
+            .document()
+
+            let answer = Answer(
+                id: answerRef.documentID,
+                flashcardId: flashcardId,
+                text: answerDraft.text,
+                isCorrect: answerDraft.isCorrect,
+                orderIndex: index
+            )
+
+            try batch.setData(from: answer, forDocument: answerRef)
+        }
+
+        batch.updateData([
+            "updatedAt": now
+        ], forDocument: stageDocument(userId: userId, deckId: deckId, stageId: stageId))
+
+        try await batch.commit()
+    }
 }
 
 struct AnswerDraft: Identifiable, Equatable {

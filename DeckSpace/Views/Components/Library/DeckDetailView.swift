@@ -10,16 +10,24 @@ import FirebaseAuth
 
 struct DeckDetailView: View {
     let deck: Deck
-
+    
+    @State private var editableDeck: Deck
+    
     @StateObject private var stageViewModel = StageViewModel()
     @StateObject private var discoverViewModel = DiscoverViewModel()
+    @StateObject private var deckViewModel = DeckViewModel()
 
     @State private var showingAddStageSheet = false
     @State private var isPublished: Bool = false
     @State private var isPublishing: Bool = false
 
+    init(deck: Deck) {
+        self.deck = deck
+        _editableDeck = State(initialValue: deck)
+    }
+    
     private var deckId: String {
-        deck.id ?? ""
+        editableDeck.id ?? ""
     }
     
     private var activeStage: Stage? {
@@ -44,14 +52,19 @@ struct DeckDetailView: View {
                         .font(.footnote)
                         .foregroundStyle(.red)
                 }
+                
+                if let deckError = deckViewModel.errorMessage {
+                    Text(deckError)
+                        .font(.footnote)
+                        .foregroundStyle(.red)
+                }
             }
             .padding()
         }
-        .navigationTitle(deck.title)
+        .navigationTitle(editableDeck.title)
         .navigationBarTitleDisplayMode(.inline)
         .task {
-            // Sinkronkan status tombol publish berdasarkan data awal dari model deck
-            isPublished = deck.isPublished
+            isPublished = editableDeck.isPublished
             
             if !deckId.isEmpty {
                 await stageViewModel.fetchStages(deckId: deckId)
@@ -59,9 +72,17 @@ struct DeckDetailView: View {
         }
         .toolbar {
             ToolbarItemGroup(placement: .topBarTrailing) {
+                NavigationLink {
+                    EditDeckView(deck: editableDeck) { updatedDeck in
+                        await deckViewModel.updateDeck(updatedDeck)
+                        editableDeck = updatedDeck
+                        isPublished = updatedDeck.isPublished
+                    }
+                } label: {
+                    Label("Edit", systemImage: "pencil")
+                }
                 
-                // 1. Tombol Publish (Hanya tampil untuk pemilik Deck asli)
-                if deck.ownerId == Auth.auth().currentUser?.uid {
+                if editableDeck.ownerId == Auth.auth().currentUser?.uid {
                     if isPublished {
                         Text("Published")
                             .font(.caption)
@@ -73,12 +94,11 @@ struct DeckDetailView: View {
                             Task {
                                 isPublishing = true
                                 
-                                // Memanggil fungsi publish melalui DiscoverViewModel
-                                await discoverViewModel.publishDeck(deck)
+                                await discoverViewModel.publishDeck(editableDeck)
                                 
-                                // Jika proses di DiscoverViewModel sukses tanpa error, ubah status UI
                                 if discoverViewModel.errorMessage == nil {
                                     isPublished = true
+                                    editableDeck.isPublished = true
                                 }
                                 
                                 isPublishing = false
@@ -90,12 +110,10 @@ struct DeckDetailView: View {
                                 Image(systemName: "globe")
                             }
                         }
-                        // Tombol di-disable jika sedang proses atau deck masih kosong (belum ada stage)
                         .disabled(isPublishing || stageViewModel.stages.isEmpty)
                     }
                 }
 
-                // 2. Tombol Tambah Stage
                 Button {
                     showingAddStageSheet = true
                 } label: {
@@ -116,19 +134,18 @@ struct DeckDetailView: View {
                 .toolbar {
                     ToolbarItem(placement: .cancellationAction) {
                         Button("Cancel") {
-                            stageViewModel.resetForm()
                             showingAddStageSheet = false
                         }
                     }
+                    
                     ToolbarItem(placement: .confirmationAction) {
                         Button("Add") {
                             Task {
                                 await stageViewModel.createStage(deckId: deckId)
-                                stageViewModel.resetForm()
                                 showingAddStageSheet = false
                             }
                         }
-                        .disabled(!stageViewModel.canCreateStage)
+                        .disabled(stageViewModel.title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                     }
                 }
             }
@@ -144,17 +161,17 @@ struct DeckDetailView: View {
                         .fill(Color.accentColor.opacity(0.16))
                         .frame(width: 70, height: 70)
 
-                    Image(systemName: deck.coverIconName ?? "book.closed.fill")
+                    Image(systemName: editableDeck.coverIconName ?? "book.closed.fill")
                         .font(.system(size: 32))
                         .foregroundStyle(Color.accentColor)
                 }
 
                 VStack(alignment: .leading, spacing: 6) {
-                    Text(deck.title)
+                    Text(editableDeck.title)
                         .font(.title2)
                         .fontWeight(.bold)
                     
-                    Text(deck.category)
+                    Text(editableDeck.category)
                         .font(.caption)
                         .fontWeight(.semibold)
                         .padding(.horizontal, 10)
@@ -165,16 +182,16 @@ struct DeckDetailView: View {
                 }
             }
 
-            if !deck.description.isEmpty {
-                Text(deck.description)
+            if !editableDeck.description.isEmpty {
+                Text(editableDeck.description)
                     .font(.body)
                     .foregroundStyle(.secondary)
             }
             
             HStack {
-                Label("\(deck.stageCount) Stages", systemImage: "rectangle.stack.fill")
+                Label("\(editableDeck.stageCount) Stages", systemImage: "rectangle.stack.fill")
                 Spacer()
-                Text("By \(deck.ownerName)")
+                Text("By \(editableDeck.ownerName)")
                     .font(.footnote)
                     .foregroundStyle(.secondary)
             }
@@ -196,6 +213,7 @@ struct DeckDetailView: View {
                     Image(systemName: "folder.badge.plus")
                         .font(.largeTitle)
                         .foregroundStyle(.secondary)
+                    
                     Text("No stages available yet")
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
@@ -205,9 +223,8 @@ struct DeckDetailView: View {
                 LazyVStack(spacing: 12) {
                     ForEach(stageViewModel.stages) { stage in
                         NavigationLink {
-                            StageDetailView(deck: deck, stage: stage)
+                            StageDetailView(deck: editableDeck, stage: stage)
                         } label: {
-                            // Menggunakan komponen terpisah _StageRowView.swift Anda
                             _StageRowView(stage: stage)
                         }
                         .buttonStyle(.plain)
@@ -215,6 +232,7 @@ struct DeckDetailView: View {
                             Button(role: .destructive) {
                                 Task {
                                     await stageViewModel.deleteStage(deckId: deckId, stage: stage)
+                                    editableDeck.stageCount = max(0, editableDeck.stageCount - 1)
                                 }
                             } label: {
                                 Label("Delete Stage", systemImage: "trash")
@@ -223,11 +241,12 @@ struct DeckDetailView: View {
                     }
                 }
                 
-                // Take active stage from a deck (stages that have been done)
                 if let stageToStudy = activeStage {
                     NavigationLink {
                         StudySessionView(
-                            userId: Auth.auth().currentUser?.uid ?? "", deck: deck, stage: stageToStudy
+                            userId: Auth.auth().currentUser?.uid ?? "",
+                            deck: editableDeck,
+                            stage: stageToStudy
                         )
                     } label: {
                         HStack {

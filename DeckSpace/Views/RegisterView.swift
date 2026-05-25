@@ -38,12 +38,14 @@ struct RegisterView: View {
                     )
                     
                     AuthSecureField(
+                        id: "register-password",
                         title: "Password",
                         placeholder: "Create a password",
                         text: $password
                     )
 
                     AuthSecureField(
+                        id: "register-confirm-password",
                         title: "Confirm Password",
                         placeholder: "Confirm your password",
                         text: $confirmPassword
