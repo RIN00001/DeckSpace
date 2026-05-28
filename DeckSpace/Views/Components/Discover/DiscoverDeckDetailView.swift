@@ -46,7 +46,7 @@ struct DiscoverDeckDetailView: View {
         .task {
             if !deckId.isEmpty {
                 // Mengambil daftar stage publik milik deck ini dari database
-                await stageViewModel.fetchStages(deckId: deckId)
+                await stageViewModel.fetchPublicStages(deckId: deckId)
             }
         }
     }

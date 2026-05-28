@@ -37,7 +37,7 @@ struct HomeDeckDetailView: View {
         .navigationBarTitleDisplayMode(.inline)
         .task {
             if !deckId.isEmpty {
-                await stageViewModel.fetchStages(deckId: deckId)
+                await stageViewModel.fetchPublicStages(deckId: deckId)
             }
         }
     }

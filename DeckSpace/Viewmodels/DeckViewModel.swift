@@ -9,7 +9,6 @@ import Foundation
 import FirebaseAuth
 import Combine
 
-
 @MainActor
 final class DeckViewModel: ObservableObject {
     @Published var decks: [Deck] = []
@@ -142,6 +141,43 @@ final class DeckViewModel: ObservableObject {
         }
 
         isLoading = false
+    }
+    
+    // MARK: - Publish / Unpublish Toggle
+    func togglePublishStatus(for deck: Deck) async -> Deck? {
+        var updatedDeck = deck
+        updatedDeck.isPublished.toggle()
+        
+        // Update tanggal publish jika deck di-publish
+        if updatedDeck.isPublished {
+            updatedDeck.publishedAt = Date()
+        }
+        
+        isLoading = true
+        errorMessage = nil
+        
+        do {
+            // Cek apakah aksi ini Publish atau Unpublish
+            if updatedDeck.isPublished {
+                // Jika Publish, gunakan fungsi publishDeck agar masuk ke Discover
+                try await deckService.publishDeck(userId: deck.ownerId, deck: updatedDeck)
+            } else {
+                // Jika Unpublish, perbarui statusnya saja di database privat
+                try await deckService.updateDeck(userId: deck.ownerId, deck: updatedDeck)
+            }
+            
+            // Perbarui list decks lokal agar UI sinkron seketika
+            if let index = decks.firstIndex(where: { $0.id == updatedDeck.id }) {
+                decks[index] = updatedDeck
+            }
+            
+            isLoading = false
+            return updatedDeck
+        } catch {
+            self.errorMessage = error.localizedDescription
+            isLoading = false
+            return nil
+        }
     }
 
     func toggleScheduledDay(_ day: String) {

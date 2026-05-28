@@ -14,23 +14,21 @@ final class DiscoverViewModel: ObservableObject {
     @Published var publicDecks: [Deck] = []
     @Published var isLoading = false
     @Published var errorMessage: String?
-    @Published var downloadSuccessMessage: String? // Tambahan untuk notif sukses
+    @Published var downloadSuccessMessage: String?
     
     private let deckService = DeckService()
-    private let userService = UserService.shared // Tambahan untuk mengambil profil user
+    private let userService = UserService.shared
     
     var currentUserId: String? {
         Auth.auth().currentUser?.uid
     }
     
-    /// Menarik seluruh daftar deck publik dari backend Firestore
     func loadDiscoverDecks() async {
         isLoading = true
         errorMessage = nil
         
         do {
             let fetchedDecks = try await deckService.fetchPublicDecks()
-            // Memfilter agar user tidak melihat deck buatannya sendiri di menu Discover
             if let currentUid = currentUserId {
                 self.publicDecks = fetchedDecks.filter { $0.ownerId != currentUid }
             } else {
@@ -86,8 +84,6 @@ final class DiscoverViewModel: ObservableObject {
             do {
                 try await deckService.publishDeck(userId: userId, deck: deck)
                 
-                // Opsional: Reload data discover agar deck yang baru dipublish langsung muncul
-                // jika user membuka tab Discover
                 await loadDiscoverDecks()
                 
             } catch {

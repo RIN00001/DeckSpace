@@ -176,6 +176,21 @@ final class StageViewModel: ObservableObject {
         }
     }
 
+    // MARK: - Discover & Public Fetch (FUNGSI BARU)
+    /// Mengambil data stages milik deck publik dari halaman Discover
+    func fetchPublicStages(deckId: String) async {
+        isLoading = true
+        errorMessage = nil
+
+        do {
+            stages = try await stageService.fetchPublicStages(deckId: deckId)
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+
+        isLoading = false
+    }
+
     func resetForm() {
         title = ""
         description = ""

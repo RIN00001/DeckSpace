@@ -11,7 +11,6 @@ import FirebaseAuth
 struct DeckDetailView: View {
     let deck: Deck
     
-
     @State private var editableDeck: Deck
     
     @StateObject private var stageViewModel = StageViewModel()
@@ -19,8 +18,7 @@ struct DeckDetailView: View {
     @StateObject private var deckViewModel = DeckViewModel()
 
     @State private var showingAddStageSheet = false
-    @State private var isPublished: Bool = false
-    @State private var isPublishing: Bool = false
+    // isPublished dan isPublishing dihapus karena kita ambil langsung dari editableDeck & ViewModel
 
     init(deck: Deck) {
         self.deck = deck
@@ -45,6 +43,11 @@ struct DeckDetailView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
                 deckHeader
+                
+                // KONTROL PUBLISH BARU DISISIPKAN DI SINI
+                if editableDeck.ownerId == Auth.auth().currentUser?.uid {
+                    publishingControlSection
+                }
                 
                 stageSection
                 
@@ -71,61 +74,32 @@ struct DeckDetailView: View {
         .navigationTitle(editableDeck.title)
         .navigationBarTitleDisplayMode(.inline)
         .task {
-            isPublished = editableDeck.isPublished
-            
             if !deckId.isEmpty {
                 await stageViewModel.fetchStages(deckId: deckId)
             }
         }
         .toolbar {
             ToolbarItemGroup(placement: .topBarTrailing) {
+                // TOMBOL EDIT
                 NavigationLink {
                     EditDeckView(deck: editableDeck) { updatedDeck in
-                        await deckViewModel.updateDeck(updatedDeck)
-                        editableDeck = updatedDeck
-                        isPublished = updatedDeck.isPublished
+                        Task {
+                            await deckViewModel.updateDeck(updatedDeck)
+                            editableDeck = updatedDeck
+                        }
                     }
                 } label: {
                     Label("Edit", systemImage: "pencil")
                 }
+                .disabled(editableDeck.isPublished) // KUNCI JIKA PUBLISHED
                 
-                if editableDeck.ownerId == Auth.auth().currentUser?.uid {
-                    if isPublished {
-                        Text("Published")
-                            .font(.caption)
-                            .fontWeight(.bold)
-                            .foregroundStyle(.green)
-                            .padding(.trailing, 4)
-                    } else {
-                        Button {
-                            Task {
-                                isPublishing = true
-                                
-                                await discoverViewModel.publishDeck(editableDeck)
-                                
-                                if discoverViewModel.errorMessage == nil {
-                                    isPublished = true
-                                    editableDeck.isPublished = true
-                                }
-                                
-                                isPublishing = false
-                            }
-                        } label: {
-                            if isPublishing {
-                                ProgressView()
-                            } else {
-                                Image(systemName: "globe")
-                            }
-                        }
-                        .disabled(isPublishing || stageViewModel.stages.isEmpty)
-                    }
-                }
-                
+                // TOMBOL TAMBAH STAGE
                 Button {
                     showingAddStageSheet = true
                 } label: {
                     Image(systemName: "plus")
                 }
+                .disabled(editableDeck.isPublished) // KUNCI JIKA PUBLISHED
             }
         }
         .sheet(isPresented: $showingAddStageSheet) {
@@ -150,6 +124,8 @@ struct DeckDetailView: View {
                             Task {
                                 await stageViewModel.createStage(deckId: deckId)
                                 showingAddStageSheet = false
+                                // Opsi: Tambah deck.stageCount lokal agar sinkron
+                                editableDeck.stageCount += 1
                             }
                         }
                         .disabled(stageViewModel.title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
@@ -160,6 +136,8 @@ struct DeckDetailView: View {
         }
     }
     
+    // MARK: - Components
+    
     private var deckHeader: some View {
         VStack(alignment: .leading, spacing: 14) {
             HStack(spacing: 14) {
@@ -168,9 +146,7 @@ struct DeckDetailView: View {
                         .fill(Color.accentColor.opacity(0.16))
                         .frame(width: 70, height: 70)
 
-
                     Image(systemName: editableDeck.coverIconName ?? "book.closed.fill")
-
                         .font(.system(size: 32))
                         .foregroundStyle(Color.accentColor)
                 }
@@ -191,10 +167,8 @@ struct DeckDetailView: View {
                 }
             }
 
-
             if !editableDeck.description.isEmpty {
                 Text(editableDeck.description)
-
                     .font(.body)
                     .foregroundStyle(.secondary)
             }
@@ -210,6 +184,59 @@ struct DeckDetailView: View {
             .foregroundStyle(.secondary)
             
             Divider()
+        }
+    }
+    
+    // KOMPONEN PUBLISHING BARU
+    private var publishingControlSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Visibility")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                    
+                    HStack(spacing: 6) {
+                        Circle()
+                            .fill(editableDeck.isPublished ? Color.green : Color.orange)
+                            .frame(width: 8, height: 8)
+                        
+                        Text(editableDeck.isPublished ? "Published to Discover" : "Private Draft")
+                            .font(.headline)
+                            .fontWeight(.bold)
+                            .foregroundStyle(editableDeck.isPublished ? .green : .orange)
+                    }
+                }
+                
+                Spacer()
+                
+                Button {
+                    Task {
+                        if let updated = await deckViewModel.togglePublishStatus(for: editableDeck) {
+                            editableDeck = updated // Update UI seketika
+                        }
+                    }
+                } label: {
+                    if deckViewModel.isLoading {
+                        ProgressView()
+                    } else {
+                        Text(editableDeck.isPublished ? "Unpublish" : "Publish Live")
+                            .fontWeight(.semibold)
+                    }
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(editableDeck.isPublished ? .red : .accentColor)
+                .disabled(deckViewModel.isLoading || stageViewModel.stages.isEmpty) // Cegah publish deck kosong
+            }
+            
+            Text(editableDeck.isPublished
+                 ? "Deck is live. Unpublish to edit or add new stages."
+                 : "This deck is private. Publish it to share with everyone.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            
+            Divider()
+                .padding(.top, 4)
         }
     }
     
@@ -268,29 +295,5 @@ struct DeckDetailView: View {
                 }
             }
         }
-    }
-}
-
-#Preview {
-    NavigationStack {
-        DeckDetailView(
-            deck: Deck(
-                id: "deck_001",
-                ownerId: "user_001",
-                ownerName: "Calamity",
-                title: "SwiftUI Basics",
-                description: "Learn basic SwiftUI concepts using staged flashcards.",
-                category: "Programming",
-                coverIconName: "swift",
-                stageCount: 1,
-                isScheduled: true,
-                scheduledDays: ["Monday"],
-                scheduledTime: "19:00",
-                originalCreatorId: "user_001",
-                originalCreatorName: "Calamity",
-                originalDeckId: "deck_001",
-                originalDeckTitle: "SwiftUI Basics"
-            )
-        )
     }
 }
