@@ -27,6 +27,8 @@ struct EditFlashcardView: View {
 
     @State private var isSaving = false
 
+    private let maxContentWidth: CGFloat = 1120
+
     private let iconOptions = [
         "",
         "book.closed.fill",
@@ -43,7 +45,7 @@ struct EditFlashcardView: View {
     private var canSave: Bool {
         switch selectedType {
         case .intro:
-            return !explanationText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            return !cleanExplanationText.isEmpty
 
         case .multipleChoice:
             let filledAnswers = multipleChoiceAnswers.filter {
@@ -55,13 +57,13 @@ struct EditFlashcardView: View {
                 !$0.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
             }
 
-            return !promptText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
+            return !cleanPromptText.isEmpty &&
             filledAnswers.count >= 2 &&
             correctAnswers.count == 1
 
         case .paragraph:
-            return !promptText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
-            !paragraphModelAnswer.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            return !cleanPromptText.isEmpty &&
+            !cleanParagraphModelAnswer.isEmpty
         }
     }
 
@@ -114,28 +116,33 @@ struct EditFlashcardView: View {
     }
 
     var body: some View {
-        Form {
-            Section("Card Settings") {
-                Picker("Card Type", selection: $selectedType) {
-                    ForEach(FlashcardType.allCases) { type in
-                        Label(type.title, systemImage: type.iconName)
-                            .tag(type)
+        GeometryReader { proxy in
+            let isWideLayout = proxy.size.width >= 860
+
+            ScrollView {
+                Group {
+                    if isWideLayout {
+                        HStack(alignment: .top, spacing: 28) {
+                            previewCard
+                                .frame(maxWidth: 380)
+
+                            editorContent
+                                .frame(maxWidth: 640)
+                        }
+                    } else {
+                        VStack(spacing: 20) {
+                            previewCard
+
+                            editorContent
+                        }
                     }
                 }
-
-                Picker("Difficulty", selection: $selectedDifficulty) {
-                    ForEach(DifficultyLevel.allCases) { difficulty in
-                        Text(difficulty.title)
-                            .tag(difficulty)
-                    }
-                }
+                .padding(.horizontal, isWideLayout ? 32 : 16)
+                .padding(.vertical, 24)
+                .frame(maxWidth: maxContentWidth)
+                .frame(maxWidth: .infinity)
             }
-
-            Section("Optional Icon Placeholder") {
-                iconPickerSection
-            }
-
-            dynamicContentSection
+            .background(Color(.systemGroupedBackground))
         }
         .navigationTitle("Edit Flashcard")
         .navigationBarTitleDisplayMode(.inline)
@@ -166,86 +173,288 @@ struct EditFlashcardView: View {
         }
     }
 
-    private var iconPickerSection: some View {
-        LazyVGrid(
-            columns: Array(repeating: GridItem(.flexible()), count: 5),
-            spacing: 10
-        ) {
-            ForEach(iconOptions, id: \.self) { iconName in
-                Button {
-                    imageIconName = iconName
-                } label: {
-                    ZStack {
-                        RoundedRectangle(cornerRadius: 12)
-                            .fill(imageIconName == iconName ? Color.accentColor.opacity(0.18) : Color.gray.opacity(0.12))
-                            .frame(height: 44)
+    // MARK: - Preview
 
-                        if iconName.isEmpty {
-                            Image(systemName: "xmark")
-                                .foregroundStyle(.secondary)
-                        } else {
-                            Image(systemName: iconName)
-                                .foregroundStyle(Color.accentColor)
-                        }
-                    }
-                    .overlay {
-                        RoundedRectangle(cornerRadius: 12)
-                            .stroke(imageIconName == iconName ? Color.accentColor : Color.clear, lineWidth: 2)
+    private var previewCard: some View {
+        VStack(alignment: .leading, spacing: 18) {
+            HStack(alignment: .top, spacing: 16) {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 20)
+                        .fill(Color.accentColor.opacity(0.16))
+                        .frame(width: 76, height: 76)
+
+                    Image(systemName: selectedIconName)
+                        .font(.system(size: 34, weight: .semibold))
+                        .foregroundStyle(Color.accentColor)
+                }
+
+                VStack(alignment: .leading, spacing: 8) {
+                    Text(selectedType.title)
+                        .font(.caption)
+                        .fontWeight(.semibold)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 5)
+                        .background(Color.accentColor.opacity(0.12))
+                        .foregroundStyle(Color.accentColor)
+                        .clipShape(Capsule())
+
+                    Text(previewTitle)
+                        .font(.title3)
+                        .fontWeight(.bold)
+                        .lineLimit(3)
+                }
+
+                Spacer()
+            }
+
+            previewBody
+
+            Divider()
+
+            VStack(alignment: .leading, spacing: 10) {
+                Label(selectedDifficulty.title, systemImage: "gauge.with.dots.needle.50percent")
+
+                Label("\(makeAnswerDrafts().count) answer draft(s)", systemImage: "checklist.checked")
+            }
+            .font(.subheadline)
+            .foregroundStyle(.secondary)
+        }
+        .padding(22)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: 26)
+                .fill(Color(.systemBackground))
+        )
+        .overlay {
+            RoundedRectangle(cornerRadius: 26)
+                .stroke(Color(.separator).opacity(0.15), lineWidth: 1)
+        }
+    }
+
+    private var selectedIconName: String {
+        if !cleanIconName.isEmpty {
+            return cleanIconName
+        }
+
+        return selectedType.iconName
+    }
+
+    private var previewTitle: String {
+        switch selectedType {
+        case .intro:
+            return "Intro Card"
+
+        case .multipleChoice:
+            return cleanPromptText.isEmpty ? "Question prompt will appear here." : cleanPromptText
+
+        case .paragraph:
+            return cleanPromptText.isEmpty ? "Paragraph question will appear here." : cleanPromptText
+        }
+    }
+
+    @ViewBuilder
+    private var previewBody: some View {
+        switch selectedType {
+        case .intro:
+            Text(cleanExplanationText.isEmpty ? "Intro explanation will appear here." : cleanExplanationText)
+                .font(.body)
+                .foregroundStyle(.secondary)
+                .lineSpacing(3)
+
+        case .multipleChoice:
+            VStack(alignment: .leading, spacing: 10) {
+                ForEach(multipleChoiceAnswers.filter { !$0.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }) { answer in
+                    HStack(spacing: 8) {
+                        Image(systemName: answer.isCorrect ? "checkmark.circle.fill" : "circle")
+                            .foregroundStyle(answer.isCorrect ? Color.accentColor : Color.secondary)
+
+                        Text(answer.text.trimmingCharacters(in: .whitespacesAndNewlines))
+                            .font(.subheadline)
                     }
                 }
-                .buttonStyle(.plain)
+
+                if multipleChoiceAnswers.allSatisfy({ $0.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }) {
+                    Text("Answer options will appear here.")
+                        .font(.body)
+                        .foregroundStyle(.secondary)
+                }
+            }
+
+        case .paragraph:
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Model Answer")
+                    .font(.caption)
+                    .fontWeight(.semibold)
+                    .foregroundStyle(.secondary)
+
+                Text(cleanParagraphModelAnswer.isEmpty ? "Model answer will appear here." : cleanParagraphModelAnswer)
+                    .font(.body)
+                    .foregroundStyle(.secondary)
+                    .lineSpacing(3)
             }
         }
-        .padding(.vertical, 4)
+    }
+
+    // MARK: - Editor
+
+    private var editorContent: some View {
+        VStack(spacing: 18) {
+            cardSettingsSection
+
+            iconPickerCard
+
+            dynamicContentSection
+        }
+    }
+
+    private var cardSettingsSection: some View {
+        formCard(title: "Card Settings", systemImage: "slider.horizontal.3") {
+            VStack(spacing: 14) {
+                Picker("Card Type", selection: $selectedType) {
+                    ForEach(FlashcardType.allCases) { type in
+                        Label(type.title, systemImage: type.iconName)
+                            .tag(type)
+                    }
+                }
+
+                Picker("Difficulty", selection: $selectedDifficulty) {
+                    ForEach(DifficultyLevel.allCases) { difficulty in
+                        Text(difficulty.title)
+                            .tag(difficulty)
+                    }
+                }
+            }
+        }
+    }
+
+    private var iconPickerCard: some View {
+        formCard(title: "Optional Icon Placeholder", systemImage: "square.grid.3x3.fill") {
+            LazyVGrid(
+                columns: [
+                    GridItem(.adaptive(minimum: 56, maximum: 72), spacing: 12)
+                ],
+                spacing: 12
+            ) {
+                ForEach(iconOptions, id: \.self) { iconName in
+                    Button {
+                        imageIconName = iconName
+                    } label: {
+                        ZStack {
+                            RoundedRectangle(cornerRadius: 16)
+                                .fill(
+                                    imageIconName == iconName
+                                    ? Color.accentColor.opacity(0.18)
+                                    : Color(.secondarySystemGroupedBackground)
+                                )
+                                .frame(height: 56)
+
+                            if iconName.isEmpty {
+                                Image(systemName: "xmark")
+                                    .foregroundStyle(.secondary)
+                            } else {
+                                Image(systemName: iconName)
+                                    .foregroundStyle(
+                                        imageIconName == iconName
+                                        ? Color.accentColor
+                                        : Color.secondary
+                                    )
+                            }
+                        }
+                        .overlay {
+                            RoundedRectangle(cornerRadius: 16)
+                                .stroke(
+                                    imageIconName == iconName ? Color.accentColor : Color.clear,
+                                    lineWidth: 2
+                                )
+                        }
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+        }
     }
 
     @ViewBuilder
     private var dynamicContentSection: some View {
         switch selectedType {
         case .intro:
-            Section("Intro Explanation") {
+            formCard(title: "Intro Explanation", systemImage: "text.alignleft") {
                 TextField("Explain the topic here", text: $explanationText, axis: .vertical)
+                    .textFieldStyle(.roundedBorder)
                     .lineLimit(4...8)
             }
 
         case .multipleChoice:
-            Section("Question") {
+            formCard(title: "Question", systemImage: "questionmark.circle.fill") {
                 TextField("Question prompt", text: $promptText, axis: .vertical)
+                    .textFieldStyle(.roundedBorder)
                     .lineLimit(2...5)
             }
 
-            Section("Answers") {
-                ForEach($multipleChoiceAnswers) { $answer in
-                    HStack(spacing: 10) {
-                        Button {
-                            setCorrectAnswer(answer)
-                        } label: {
-                            Image(systemName: answer.isCorrect ? "checkmark.circle.fill" : "circle")
-                                .foregroundStyle(answer.isCorrect ? Color.accentColor : Color.secondary)
+            formCard(title: "Answers", systemImage: "checklist.checked") {
+                VStack(spacing: 12) {
+                    ForEach($multipleChoiceAnswers) { $answer in
+                        HStack(spacing: 10) {
+                            Button {
+                                setCorrectAnswer(answer)
+                            } label: {
+                                Image(systemName: answer.isCorrect ? "checkmark.circle.fill" : "circle")
+                                    .font(.title3)
+                                    .foregroundStyle(answer.isCorrect ? Color.accentColor : Color.secondary)
+                            }
+                            .buttonStyle(.plain)
+
+                            TextField("Answer option", text: $answer.text)
+                                .textFieldStyle(.roundedBorder)
                         }
-                        .buttonStyle(.plain)
-
-                        TextField("Answer option", text: $answer.text)
                     }
-                }
 
-                Text("Tap the circle to choose the correct answer. Only one correct answer is allowed.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                    Text("Tap the circle to choose the correct answer. Only one correct answer is allowed.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
             }
 
         case .paragraph:
-            Section("Question") {
+            formCard(title: "Question", systemImage: "questionmark.circle.fill") {
                 TextField("Question prompt", text: $promptText, axis: .vertical)
+                    .textFieldStyle(.roundedBorder)
                     .lineLimit(2...5)
             }
 
-            Section("Model Answer") {
+            formCard(title: "Model Answer", systemImage: "text.alignleft") {
                 TextField("Write the model answer for self-check", text: $paragraphModelAnswer, axis: .vertical)
+                    .textFieldStyle(.roundedBorder)
                     .lineLimit(4...8)
             }
         }
     }
+
+    private func formCard<Content: View>(
+        title: String,
+        systemImage: String,
+        @ViewBuilder content: () -> Content
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Label(title, systemImage: systemImage)
+                .font(.headline)
+
+            content()
+        }
+        .padding(20)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: 22)
+                .fill(Color(.systemBackground))
+        )
+        .overlay {
+            RoundedRectangle(cornerRadius: 22)
+                .stroke(Color(.separator).opacity(0.15), lineWidth: 1)
+        }
+    }
+
+    // MARK: - Logic
 
     private func setCorrectAnswer(_ answer: AnswerDraft) {
         multipleChoiceAnswers = multipleChoiceAnswers.map { currentAnswer in
@@ -284,10 +493,6 @@ struct EditFlashcardView: View {
         var updatedFlashcard = flashcard
         updatedFlashcard.type = selectedType
         updatedFlashcard.difficultyLevel = selectedDifficulty
-
-        let cleanPromptText = promptText.trimmingCharacters(in: .whitespacesAndNewlines)
-        let cleanExplanationText = explanationText.trimmingCharacters(in: .whitespacesAndNewlines)
-        let cleanIconName = imageIconName.trimmingCharacters(in: .whitespacesAndNewlines)
 
         switch selectedType {
         case .intro:
@@ -330,11 +535,27 @@ struct EditFlashcardView: View {
         case .paragraph:
             return [
                 AnswerDraft(
-                    text: paragraphModelAnswer.trimmingCharacters(in: .whitespacesAndNewlines),
+                    text: cleanParagraphModelAnswer,
                     isCorrect: true
                 )
             ]
         }
+    }
+
+    private var cleanPromptText: String {
+        promptText.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private var cleanExplanationText: String {
+        explanationText.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private var cleanIconName: String {
+        imageIconName.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private var cleanParagraphModelAnswer: String {
+        paragraphModelAnswer.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 }
 

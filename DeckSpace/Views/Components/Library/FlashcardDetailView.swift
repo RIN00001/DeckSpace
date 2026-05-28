@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import FirebaseAuth
 
 struct FlashcardDetailView: View {
     let deck: Deck
@@ -13,6 +14,7 @@ struct FlashcardDetailView: View {
     let flashcard: Flashcard
 
     @State private var editableFlashcard: Flashcard
+
     @StateObject private var detailViewModel = FlashcardDetailViewModel()
     @StateObject private var flashcardViewModel = FlashcardViewModel()
 
@@ -35,26 +37,42 @@ struct FlashcardDetailView: View {
         editableFlashcard.id ?? ""
     }
 
+    private var isOwner: Bool {
+        deck.ownerId == Auth.auth().currentUser?.uid
+    }
+
+    private var canEditFlashcard: Bool {
+        isOwner && !deck.isPublished
+    }
+
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 20) {
-                flashcardHeader
+        GeometryReader { proxy in
+            let isWideLayout = proxy.size.width >= 860
 
-                contentSection
+            ScrollView {
+                Group {
+                    if isWideLayout {
+                        HStack(alignment: .top, spacing: 28) {
+                            flashcardHeader
+                                .frame(maxWidth: 360)
 
-                if let errorMessage = detailViewModel.errorMessage {
-                    Text(errorMessage)
-                        .font(.footnote)
-                        .foregroundStyle(.red)
+                            contentColumn
+                                .frame(maxWidth: 650)
+                        }
+                    } else {
+                        VStack(spacing: 20) {
+                            flashcardHeader
+
+                            contentColumn
+                        }
+                    }
                 }
-
-                if let errorMessage = flashcardViewModel.errorMessage {
-                    Text(errorMessage)
-                        .font(.footnote)
-                        .foregroundStyle(.red)
-                }
+                .padding(.horizontal, isWideLayout ? 32 : 16)
+                .padding(.vertical, 24)
+                .frame(maxWidth: 1120)
+                .frame(maxWidth: .infinity)
             }
-            .padding()
+            .background(Color(.systemGroupedBackground))
         }
         .navigationTitle(editableFlashcard.type.title)
         .navigationBarTitleDisplayMode(.inline)
@@ -63,90 +81,61 @@ struct FlashcardDetailView: View {
         }
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
-                NavigationLink {
-                    EditFlashcardView(
-                        flashcard: editableFlashcard,
-                        answers: detailViewModel.answers
-                    ) { updatedFlashcard, updatedAnswers in
-                        await flashcardViewModel.updateFlashcard(
-                            deckId: deckId,
-                            stageId: stageId,
-                            flashcard: updatedFlashcard,
-                            answers: updatedAnswers
-                        )
+                if canEditFlashcard {
+                    NavigationLink {
+                        EditFlashcardView(
+                            flashcard: editableFlashcard,
+                            answers: detailViewModel.answers
+                        ) { updatedFlashcard, updatedAnswers in
+                            await flashcardViewModel.updateFlashcard(
+                                deckId: deckId,
+                                stageId: stageId,
+                                flashcard: updatedFlashcard,
+                                answers: updatedAnswers
+                            )
 
-                        editableFlashcard = updatedFlashcard
+                            editableFlashcard = updatedFlashcard
 
-                        await detailViewModel.fetchAnswers(
-                            deckId: deckId,
-                            stageId: stageId,
-                            flashcardId: flashcardId
-                        )
+                            await detailViewModel.fetchAnswers(
+                                deckId: deckId,
+                                stageId: stageId,
+                                flashcardId: updatedFlashcard.id ?? flashcardId
+                            )
+                        }
+                    } label: {
+                        Label("Edit", systemImage: "pencil")
                     }
-                } label: {
-                    Label("Edit", systemImage: "pencil")
                 }
             }
         }
     }
 
     private func fetchAnswersIfNeeded() async {
-        if !deckId.isEmpty && !stageId.isEmpty && !flashcardId.isEmpty {
-            await detailViewModel.fetchAnswers(
-                deckId: deckId,
-                stageId: stageId,
-                flashcardId: flashcardId
-            )
+        guard !deckId.isEmpty,
+              !stageId.isEmpty,
+              !flashcardId.isEmpty else {
+            return
         }
+
+        await detailViewModel.fetchAnswers(
+            deckId: deckId,
+            stageId: stageId,
+            flashcardId: flashcardId
+        )
     }
 
-    private var flashcardHeader: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            HStack(spacing: 14) {
-                ZStack {
-                    RoundedRectangle(cornerRadius: 18)
-                        .fill(Color.accentColor.opacity(0.16))
-                        .frame(width: 70, height: 70)
+    // MARK: - Main Content
 
-                    Image(systemName: displayIconName)
-                        .font(.system(size: 32))
-                        .foregroundStyle(Color.accentColor)
-                }
+    private var contentColumn: some View {
+        VStack(alignment: .leading, spacing: 18) {
+            contentSection
 
-                VStack(alignment: .leading, spacing: 6) {
-                    Text(editableFlashcard.type.title)
-                        .font(.title2.bold())
-
-                    Text(editableFlashcard.difficultyLevel.title)
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                }
-
-                Spacer()
+            if !canEditFlashcard {
+                lockedNotice
             }
 
-            HStack(spacing: 10) {
-                Label("Score \(editableFlashcard.masteryScore)/\(editableFlashcard.masteryThreshold)", systemImage: "chart.bar.fill")
-
-                if editableFlashcard.isMastered {
-                    Label("Mastered", systemImage: "checkmark.seal.fill")
-                }
-            }
-            .font(.caption)
-            .foregroundStyle(.secondary)
-
-            HStack(spacing: 10) {
-                Label("\(editableFlashcard.correctCount) correct", systemImage: "checkmark.circle.fill")
-                Label("\(editableFlashcard.incorrectCount) wrong", systemImage: "xmark.circle.fill")
-            }
-            .font(.caption)
-            .foregroundStyle(.secondary)
+            errorSection
         }
-        .padding()
-        .background(
-            RoundedRectangle(cornerRadius: 20)
-                .fill(Color.gray.opacity(0.1))
-        )
     }
 
     @ViewBuilder
@@ -163,103 +152,297 @@ struct FlashcardDetailView: View {
         }
     }
 
-    private var introContent: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("Explanation")
-                .font(.headline)
-
-            Text(editableFlashcard.explanationText ?? "No explanation provided.")
-                .font(.body)
-                .foregroundStyle(.secondary)
-                .frame(maxWidth: .infinity, alignment: .leading)
+    private var lockedNotice: some View {
+        Label(
+            deck.isPublished ? "This deck is published, so this flashcard is view-only." : "Only the owner can edit this flashcard.",
+            systemImage: "lock.fill"
+        )
+        .font(.caption)
+        .foregroundStyle(.secondary)
+        .padding(14)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: 16)
+                .fill(Color(.systemBackground))
+        )
+        .overlay {
+            RoundedRectangle(cornerRadius: 16)
+                .stroke(Color(.separator).opacity(0.15), lineWidth: 1)
         }
-        .libraryContentCardStyle()
     }
 
-    private var multipleChoiceContent: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            Text("Question")
-                .font(.headline)
+    @ViewBuilder
+    private var errorSection: some View {
+        if detailViewModel.errorMessage != nil || flashcardViewModel.errorMessage != nil {
+            VStack(alignment: .leading, spacing: 8) {
+                if let errorMessage = detailViewModel.errorMessage {
+                    Text(errorMessage)
+                        .font(.footnote)
+                        .foregroundStyle(.red)
+                }
 
-            Text(editableFlashcard.promptText ?? "No question provided.")
-                .font(.body)
-                .foregroundStyle(.secondary)
+                if let errorMessage = flashcardViewModel.errorMessage {
+                    Text(errorMessage)
+                        .font(.footnote)
+                        .foregroundStyle(.red)
+                }
+            }
+            .padding(16)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(
+                RoundedRectangle(cornerRadius: 16)
+                    .fill(Color.red.opacity(0.08))
+            )
+        }
+    }
+
+    // MARK: - Header
+
+    private var flashcardHeader: some View {
+        VStack(alignment: .leading, spacing: 18) {
+            HStack(alignment: .top, spacing: 16) {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 20)
+                        .fill(Color.accentColor.opacity(0.16))
+                        .frame(width: 76, height: 76)
+
+                    Image(systemName: displayIconName)
+                        .font(.system(size: 34, weight: .semibold))
+                        .foregroundStyle(Color.accentColor)
+                }
+
+                VStack(alignment: .leading, spacing: 8) {
+                    Text(editableFlashcard.type.title)
+                        .font(.title2)
+                        .fontWeight(.bold)
+
+                    difficultyBadge
+
+                    if editableFlashcard.isMastered {
+                        masteredBadge
+                    }
+                }
+
+                Spacer()
+            }
 
             Divider()
 
-            HStack {
-                Text("Answers")
-                    .font(.headline)
+            VStack(alignment: .leading, spacing: 12) {
+                metricRow(
+                    title: "Order",
+                    value: "#\(editableFlashcard.orderIndex + 1)",
+                    systemImage: "number"
+                )
 
-                Spacer()
+                metricRow(
+                    title: "Mastery Score",
+                    value: "\(editableFlashcard.masteryScore)/\(editableFlashcard.masteryThreshold)",
+                    systemImage: "chart.bar.fill"
+                )
 
-                if detailViewModel.isLoading {
-                    ProgressView()
-                }
+                metricRow(
+                    title: "Correct",
+                    value: "\(editableFlashcard.correctCount)",
+                    systemImage: "checkmark.circle.fill"
+                )
+
+                metricRow(
+                    title: "Wrong",
+                    value: "\(editableFlashcard.incorrectCount)",
+                    systemImage: "xmark.circle.fill"
+                )
+            }
+        }
+        .padding(22)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: 26)
+                .fill(Color(.systemBackground))
+        )
+        .overlay {
+            RoundedRectangle(cornerRadius: 26)
+                .stroke(Color(.separator).opacity(0.15), lineWidth: 1)
+        }
+    }
+
+    private var difficultyBadge: some View {
+        Label(
+            editableFlashcard.difficultyLevel.title,
+            systemImage: editableFlashcard.difficultyLevel.iconName
+        )
+        .font(.caption)
+        .fontWeight(.semibold)
+        .foregroundStyle(.secondary)
+        .padding(.horizontal, 10)
+        .padding(.vertical, 5)
+        .background(Color(.secondarySystemGroupedBackground))
+        .clipShape(Capsule())
+    }
+
+    private var masteredBadge: some View {
+        Label("Mastered", systemImage: "checkmark.seal.fill")
+            .font(.caption)
+            .fontWeight(.semibold)
+            .foregroundStyle(.green)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 5)
+            .background(Color.green.opacity(0.12))
+            .clipShape(Capsule())
+    }
+
+    private func metricRow(title: String, value: String, systemImage: String) -> some View {
+        HStack(spacing: 10) {
+            Image(systemName: systemImage)
+                .foregroundStyle(Color.accentColor)
+                .frame(width: 20)
+
+            Text(title)
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+
+            Spacer()
+
+            Text(value)
+                .font(.subheadline)
+                .fontWeight(.semibold)
+        }
+    }
+
+    // MARK: - Intro
+
+    private var introContent: some View {
+        contentCard(title: "Explanation", systemImage: "text.alignleft") {
+            Text(editableFlashcard.explanationText ?? "No explanation provided.")
+                .font(.body)
+                .foregroundStyle(.secondary)
+                .lineSpacing(3)
+                .frame(maxWidth: .infinity, alignment: .leading)
+        }
+    }
+
+    // MARK: - Multiple Choice
+
+    private var multipleChoiceContent: some View {
+        VStack(alignment: .leading, spacing: 18) {
+            contentCard(title: "Question", systemImage: "questionmark.circle.fill") {
+                Text(editableFlashcard.promptText ?? "No question provided.")
+                    .font(.body)
+                    .foregroundStyle(.secondary)
+                    .lineSpacing(3)
+                    .frame(maxWidth: .infinity, alignment: .leading)
             }
 
-            if detailViewModel.answers.isEmpty && !detailViewModel.isLoading {
-                Text("No answers found.")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-            } else {
-                VStack(spacing: 10) {
-                    ForEach(detailViewModel.answers) { answer in
-                        HStack(spacing: 10) {
-                            Image(systemName: answer.isCorrect ? "checkmark.circle.fill" : "circle")
-                                .foregroundStyle(answer.isCorrect ? Color.green : Color.secondary)
-
-                            Text(answer.text)
-                                .font(.body)
-
-                            Spacer()
+            contentCard(title: "Answers", systemImage: "checklist.checked") {
+                if detailViewModel.isLoading {
+                    loadingAnswerView
+                } else if detailViewModel.answers.isEmpty {
+                    emptyAnswerView("No answers found.")
+                } else {
+                    VStack(spacing: 10) {
+                        ForEach(detailViewModel.answers) { answer in
+                            answerRow(answer)
                         }
-                        .padding()
-                        .background(
-                            RoundedRectangle(cornerRadius: 14)
-                                .fill(answer.isCorrect ? Color.green.opacity(0.12) : Color.gray.opacity(0.1))
-                        )
                     }
                 }
             }
         }
-        .libraryContentCardStyle()
     }
 
-    private var paragraphContent: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            Text("Question")
-                .font(.headline)
+    private func answerRow(_ answer: Answer) -> some View {
+        HStack(alignment: .top, spacing: 10) {
+            Image(systemName: answer.isCorrect ? "checkmark.circle.fill" : "circle")
+                .font(.title3)
+                .foregroundStyle(answer.isCorrect ? .green : .secondary)
+                .padding(.top, 1)
 
-            Text(editableFlashcard.promptText ?? "No question provided.")
+            Text(answer.text)
                 .font(.body)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(answer.isCorrect ? .primary : .secondary)
+                .lineSpacing(2)
 
-            Divider()
+            Spacer()
+        }
+        .padding(14)
+        .background(
+            RoundedRectangle(cornerRadius: 16)
+                .fill(answer.isCorrect ? Color.green.opacity(0.12) : Color(.secondarySystemGroupedBackground))
+        )
+        .overlay {
+            RoundedRectangle(cornerRadius: 16)
+                .stroke(answer.isCorrect ? Color.green.opacity(0.25) : Color.clear, lineWidth: 1)
+        }
+    }
 
-            HStack {
-                Text("Model Answer")
-                    .font(.headline)
+    // MARK: - Paragraph
 
-                Spacer()
-
-                if detailViewModel.isLoading {
-                    ProgressView()
-                }
-            }
-
-            if let modelAnswer = detailViewModel.answers.first {
-                Text(modelAnswer.text)
+    private var paragraphContent: some View {
+        VStack(alignment: .leading, spacing: 18) {
+            contentCard(title: "Question", systemImage: "questionmark.circle.fill") {
+                Text(editableFlashcard.promptText ?? "No question provided.")
                     .font(.body)
                     .foregroundStyle(.secondary)
+                    .lineSpacing(3)
                     .frame(maxWidth: .infinity, alignment: .leading)
-            } else if !detailViewModel.isLoading {
-                Text("No model answer found.")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
+            }
+
+            contentCard(title: "Model Answer", systemImage: "text.alignleft") {
+                if detailViewModel.isLoading {
+                    loadingAnswerView
+                } else if let modelAnswer = detailViewModel.answers.first {
+                    Text(modelAnswer.text)
+                        .font(.body)
+                        .foregroundStyle(.secondary)
+                        .lineSpacing(3)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                } else {
+                    emptyAnswerView("No model answer found.")
+                }
             }
         }
-        .libraryContentCardStyle()
+    }
+
+    private var loadingAnswerView: some View {
+        HStack(spacing: 10) {
+            ProgressView()
+
+            Text("Loading answers...")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private func emptyAnswerView(_ message: String) -> some View {
+        Text(message)
+            .font(.subheadline)
+            .foregroundStyle(.secondary)
+            .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    // MARK: - Shared Card
+
+    private func contentCard<Content: View>(
+        title: String,
+        systemImage: String,
+        @ViewBuilder content: () -> Content
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Label(title, systemImage: systemImage)
+                .font(.headline)
+
+            content()
+        }
+        .padding(20)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: 22)
+                .fill(Color(.systemBackground))
+        )
+        .overlay {
+            RoundedRectangle(cornerRadius: 22)
+                .stroke(Color(.separator).opacity(0.15), lineWidth: 1)
+        }
     }
 
     private var displayIconName: String {
@@ -268,18 +451,6 @@ struct FlashcardDetailView: View {
         }
 
         return editableFlashcard.type.iconName
-    }
-}
-
-private extension View {
-    func libraryContentCardStyle() -> some View {
-        self
-            .padding()
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(
-                RoundedRectangle(cornerRadius: 18)
-                    .fill(Color.gray.opacity(0.1))
-            )
     }
 }
 

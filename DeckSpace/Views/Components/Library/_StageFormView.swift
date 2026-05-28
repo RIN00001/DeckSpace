@@ -12,43 +12,83 @@ struct _StageFormView: View {
     let deckId: String
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("Add Stage")
-                .font(.headline)
+        VStack(alignment: .leading, spacing: 18) {
+            headerSection
 
-            TextField("Stage title", text: $viewModel.title)
-                .textFieldStyle(.roundedBorder)
+            VStack(spacing: 14) {
+                TextField("Stage title", text: $viewModel.title)
+                    .textFieldStyle(.roundedBorder)
 
-            TextField("Description", text: $viewModel.description, axis: .vertical)
-                .textFieldStyle(.roundedBorder)
-                .lineLimit(2...4)
-
-            Button {
-                Task {
-                    await viewModel.createStage(deckId: deckId)
-                }
-            } label: {
-                HStack {
-                    if viewModel.isLoading {
-                        ProgressView()
-                    }
-
-                    Text(viewModel.isLoading ? "Adding Stage..." : "Add Stage")
-                        .fontWeight(.semibold)
-                }
-                .frame(maxWidth: .infinity)
-                .padding()
-                .background(viewModel.canCreateStage ? Color.accentColor : Color.gray.opacity(0.35))
-                .foregroundStyle(.white)
-                .clipShape(RoundedRectangle(cornerRadius: 14))
+                TextField("Description", text: $viewModel.description, axis: .vertical)
+                    .textFieldStyle(.roundedBorder)
+                    .lineLimit(2...4)
             }
-            .disabled(!viewModel.canCreateStage || viewModel.isLoading)
+
+            addButton
         }
-        .padding()
+        .padding(20)
+        .frame(maxWidth: .infinity, alignment: .leading)
         .background(
-            RoundedRectangle(cornerRadius: 18)
-                .fill(Color.gray.opacity(0.1))
+            RoundedRectangle(cornerRadius: 22)
+                .fill(Color(.systemBackground))
         )
+        .overlay {
+            RoundedRectangle(cornerRadius: 22)
+                .stroke(Color(.separator).opacity(0.16), lineWidth: 1)
+        }
+        .shadow(color: .black.opacity(0.035), radius: 8, x: 0, y: 4)
+    }
+
+    private var headerSection: some View {
+        HStack(alignment: .top, spacing: 12) {
+            ZStack {
+                Circle()
+                    .fill(Color.accentColor.opacity(0.14))
+                    .frame(width: 44, height: 44)
+
+                Image(systemName: "folder.badge.plus")
+                    .font(.headline)
+                    .foregroundStyle(Color.accentColor)
+            }
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Add Stage")
+                    .font(.headline)
+                    .fontWeight(.bold)
+
+                Text("Create a new learning stage for this deck.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
+            Spacer()
+        }
+    }
+
+    private var addButton: some View {
+        Button {
+            Task {
+                await viewModel.createStage(deckId: deckId)
+            }
+        } label: {
+            HStack {
+                if viewModel.isLoading {
+                    ProgressView()
+                        .tint(.white)
+                }
+
+                Text(viewModel.isLoading ? "Adding Stage..." : "Add Stage")
+                    .fontWeight(.semibold)
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 14)
+            .background(
+                RoundedRectangle(cornerRadius: 14)
+                    .fill(viewModel.canCreateStage ? Color.accentColor : Color.gray.opacity(0.35))
+            )
+            .foregroundStyle(.white)
+        }
+        .disabled(!viewModel.canCreateStage || viewModel.isLoading)
     }
 }
 
@@ -58,4 +98,5 @@ struct _StageFormView: View {
         deckId: "deck_001"
     )
     .padding()
+    .background(Color(.systemGroupedBackground))
 }

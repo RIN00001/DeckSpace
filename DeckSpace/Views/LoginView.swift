@@ -16,70 +16,72 @@ struct LoginView: View {
     
     var body: some View {
         NavigationStack {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 28) {
-                    headerSection
+            AuthPageLayout(
+                title: "Welcome Back",
+                subtitle: "Login to continue learning with DeckSpace.",
+                systemImage: "rectangle.stack.fill"
+            ) {
+                VStack(spacing: 22) {
+                    inputSection
                     
-                    VStack(spacing: 18) {
-                        AuthTextField(
-                            title: "Email",
-                            placeholder: "Enter your email",
-                            text: $email,
-                            keyboardType: .emailAddress,
-                            textInputAutocapitalization: .never
-                        )
-                        
-                        AuthSecureField(
-                            id: "login-password",
-                            title: "Password",
-                            placeholder: "Enter your password",
-                            text: $password
-                        )
-                    }
+                    messageSection
                     
-                    if let errorMessage = authViewModel.errorMessage {
-                        Text(errorMessage)
-                            .font(.footnote)
-                            .foregroundStyle(.red)
-                    }
-                    
-                    AuthButton(
-                        title: "Login",
-                        isLoading: authViewModel.isLoading
-                    ) {
-                        Task {
-                            await authViewModel.login(
-                                email: email.trimmingCharacters(in: .whitespacesAndNewlines),
-                                password: password
-                            )
-                        }
-                    }
-                    .disabled(!isFormValid)
-                    .opacity(isFormValid ? 1.0 : 0.5)
+                    loginButton
                     
                     registerNavigation
                 }
-                .padding()
             }
             .navigationBarBackButtonHidden()
         }
     }
     
-    private var headerSection: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text("Welcome Back")
-                .font(.largeTitle)
-                .fontWeight(.bold)
+    private var inputSection: some View {
+        VStack(spacing: 18) {
+            AuthTextField(
+                title: "Email",
+                placeholder: "Enter your email",
+                text: $email,
+                keyboardType: .emailAddress,
+                textInputAutocapitalization: .never
+            )
             
-            Text("Login to continue learning with DeckSpace.")
-                .font(.body)
-                .foregroundStyle(.secondary)
+            AuthSecureField(
+                id: "login-password",
+                title: "Password",
+                placeholder: "Enter your password",
+                text: $password
+            )
         }
-        .padding(.top, 40)
+    }
+    
+    @ViewBuilder
+    private var messageSection: some View {
+        if let errorMessage = authViewModel.errorMessage {
+            Text(errorMessage)
+                .font(.footnote)
+                .foregroundStyle(.red)
+                .frame(maxWidth: .infinity, alignment: .leading)
+        }
+    }
+    
+    private var loginButton: some View {
+        AuthButton(
+            title: "Login",
+            isLoading: authViewModel.isLoading
+        ) {
+            Task {
+                await authViewModel.login(
+                    email: email.trimmingCharacters(in: .whitespacesAndNewlines),
+                    password: password
+                )
+            }
+        }
+        .disabled(!isFormValid)
+        .opacity(isFormValid ? 1.0 : 0.5)
     }
     
     private var registerNavigation: some View {
-        HStack {
+        HStack(spacing: 4) {
             Text("Don't have an account?")
                 .foregroundStyle(.secondary)
             
@@ -92,6 +94,7 @@ struct LoginView: View {
         }
         .font(.subheadline)
         .frame(maxWidth: .infinity)
+        .padding(.top, 2)
     }
     
     private var isFormValid: Bool {

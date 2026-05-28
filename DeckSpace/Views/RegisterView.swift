@@ -18,68 +18,18 @@ struct RegisterView: View {
     @State private var confirmPassword = ""
     
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 28) {
-                headerSection
+        AuthPageLayout(
+            title: "Create Account",
+            subtitle: "Start creating, studying, and sharing flashcard decks.",
+            systemImage: "person.crop.circle.badge.plus"
+        ) {
+            VStack(spacing: 22) {
+                inputSection
                 
-                VStack(spacing: 18) {
-                    AuthTextField(
-                        title: "Username",
-                        placeholder: "Enter your username",
-                        text: $username
-                    )
-                    
-                    AuthTextField(
-                        title: "Email",
-                        placeholder: "Enter your email",
-                        text: $email,
-                        keyboardType: .emailAddress,
-                        textInputAutocapitalization: .never
-                    )
-                    
-                    AuthSecureField(
-                        id: "register-password",
-                        title: "Password",
-                        placeholder: "Create a password",
-                        text: $password
-                    )
-
-                    AuthSecureField(
-                        id: "register-confirm-password",
-                        title: "Confirm Password",
-                        placeholder: "Confirm your password",
-                        text: $confirmPassword
-                    )
-                }
+                messageSection
                 
-                if let validationMessage {
-                    Text(validationMessage)
-                        .font(.footnote)
-                        .foregroundStyle(.orange)
-                }
-                
-                if let errorMessage = authViewModel.errorMessage {
-                    Text(errorMessage)
-                        .font(.footnote)
-                        .foregroundStyle(.red)
-                }
-                
-                AuthButton(
-                    title: "Create Account",
-                    isLoading: authViewModel.isLoading
-                ) {
-                    Task {
-                        await authViewModel.register(
-                            username: username.trimmingCharacters(in: .whitespacesAndNewlines),
-                            email: email.trimmingCharacters(in: .whitespacesAndNewlines),
-                            password: password
-                        )
-                    }
-                }
-                .disabled(!isFormValid)
-                .opacity(isFormValid ? 1.0 : 0.5)
+                registerButton
             }
-            .padding()
         }
         .navigationTitle("Register")
         .navigationBarTitleDisplayMode(.inline)
@@ -90,17 +40,70 @@ struct RegisterView: View {
         }
     }
     
-    private var headerSection: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text("Create Account")
-                .font(.largeTitle)
-                .fontWeight(.bold)
+    private var inputSection: some View {
+        VStack(spacing: 18) {
+            AuthTextField(
+                title: "Username",
+                placeholder: "Enter your username",
+                text: $username
+            )
             
-            Text("Start creating, studying, and sharing flashcard decks.")
-                .font(.body)
-                .foregroundStyle(.secondary)
+            AuthTextField(
+                title: "Email",
+                placeholder: "Enter your email",
+                text: $email,
+                keyboardType: .emailAddress,
+                textInputAutocapitalization: .never
+            )
+            
+            AuthSecureField(
+                id: "register-password",
+                title: "Password",
+                placeholder: "Create a password",
+                text: $password
+            )
+            
+            AuthSecureField(
+                id: "register-confirm-password",
+                title: "Confirm Password",
+                placeholder: "Confirm your password",
+                text: $confirmPassword
+            )
         }
-        .padding(.top, 24)
+    }
+    
+    @ViewBuilder
+    private var messageSection: some View {
+        if let validationMessage {
+            Text(validationMessage)
+                .font(.footnote)
+                .foregroundStyle(.orange)
+                .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        
+        if let errorMessage = authViewModel.errorMessage {
+            Text(errorMessage)
+                .font(.footnote)
+                .foregroundStyle(.red)
+                .frame(maxWidth: .infinity, alignment: .leading)
+        }
+    }
+    
+    private var registerButton: some View {
+        AuthButton(
+            title: "Create Account",
+            isLoading: authViewModel.isLoading
+        ) {
+            Task {
+                await authViewModel.register(
+                    username: username.trimmingCharacters(in: .whitespacesAndNewlines),
+                    email: email.trimmingCharacters(in: .whitespacesAndNewlines),
+                    password: password
+                )
+            }
+        }
+        .disabled(!isFormValid)
+        .opacity(isFormValid ? 1.0 : 0.5)
     }
     
     private var validationMessage: String? {
