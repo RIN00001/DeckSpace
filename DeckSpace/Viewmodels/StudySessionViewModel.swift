@@ -34,8 +34,6 @@ final class StudySessionViewModel: ObservableObject {
     }
     
     func buildSessionQUeue(userId: String, deckId: String, stageId: String) async {
-        guard sessionItems.isEmpty else { return }
-        
         isLoading = true
         errorMessage = nil
         
