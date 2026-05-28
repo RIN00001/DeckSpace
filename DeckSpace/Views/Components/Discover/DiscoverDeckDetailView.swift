@@ -16,6 +16,8 @@ struct DiscoverDeckDetailView: View {
     @State private var isDownloading = false
     @State private var hasDownloaded = false
     
+    // 1. Tambahkan deteksi ukuran layar
+    @Environment(\.horizontalSizeClass) private var sizeClass
     @Environment(\.dismiss) private var dismiss
 
     private var deckId: String {
@@ -40,6 +42,9 @@ struct DiscoverDeckDetailView: View {
                 }
             }
             .padding()
+            // 2. Kunci lebar konten di iPad/Mac agar tidak melar
+            .frame(maxWidth: sizeClass == .compact ? .infinity : 700)
+            .frame(maxWidth: .infinity, alignment: .top)
         }
         .navigationTitle("Deck Preview")
         .navigationBarTitleDisplayMode(.inline)

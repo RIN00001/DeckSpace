@@ -11,6 +11,9 @@ struct HomeDeckDetailView: View {
     let deck: Deck
 
     @StateObject private var stageViewModel = StageViewModel()
+    
+    // 1. Tambahkan deteksi ukuran layar (Compact vs Regular)
+    @Environment(\.horizontalSizeClass) private var sizeClass
 
     private var deckId: String {
         deck.id ?? ""
@@ -32,6 +35,9 @@ struct HomeDeckDetailView: View {
                 }
             }
             .padding()
+            // 2. Kunci lebar konten di iPad/Mac agar tetap proporsional di tengah
+            .frame(maxWidth: sizeClass == .compact ? .infinity : 700)
+            .frame(maxWidth: .infinity, alignment: .top)
         }
         .navigationTitle(deck.title)
         .navigationBarTitleDisplayMode(.inline)
@@ -112,28 +118,28 @@ struct HomeDeckDetailView: View {
     }
 
     private var stageSection: some View {
-            VStack(alignment: .leading, spacing: 14) {
-                Text("Stages")
-                    .font(.title3)
-                    .fontWeight(.bold)
-                
-                if stageViewModel.stages.isEmpty {
-                    VStack(spacing: 8) {
-                        Image(systemName: "folder.badge.plus")
-                            .font(.largeTitle)
-                            .foregroundStyle(.secondary)
-                        Text("No stages available yet")
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
-                    }
-                    .frame(maxWidth: .infinity, minHeight: 120)
-                } else {
-                    LazyVStack(spacing: 12) {
-                        ForEach(stageViewModel.stages) { stage in
-                            _HomeStageRowView(stage: stage)
-                        }
+        VStack(alignment: .leading, spacing: 14) {
+            Text("Stages")
+                .font(.title3)
+                .fontWeight(.bold)
+            
+            if stageViewModel.stages.isEmpty {
+                VStack(spacing: 8) {
+                    Image(systemName: "folder.badge.plus")
+                        .font(.largeTitle)
+                        .foregroundStyle(.secondary)
+                    Text("No stages available yet")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
+                .frame(maxWidth: .infinity, minHeight: 120)
+            } else {
+                LazyVStack(spacing: 12) {
+                    ForEach(stageViewModel.stages) { stage in
+                        _HomeStageRowView(stage: stage)
                     }
                 }
             }
         }
+    }
 }

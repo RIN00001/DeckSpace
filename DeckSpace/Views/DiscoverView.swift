@@ -10,6 +10,14 @@ import SwiftUI
 struct DiscoverView: View {
     @StateObject private var viewModel = DiscoverViewModel()
     
+    // 1. Deteksi ukuran layar
+    @Environment(\.horizontalSizeClass) private var sizeClass
+    
+    // Konfigurasi kolom untuk tampilan iPad & Mac
+    private var columns: [GridItem] {
+        [GridItem(.adaptive(minimum: 320, maximum: .infinity), spacing: 16)]
+    }
+    
     var body: some View {
         NavigationStack {
             Group {
@@ -21,6 +29,7 @@ struct DiscoverView: View {
                             .font(.subheadline)
                             .foregroundColor(.secondary)
                     }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
                 } else if let errorMessage = viewModel.errorMessage {
                     VStack(spacing: 16) {
                         Image(systemName: "exclamationmark.triangle.fill")
@@ -35,6 +44,7 @@ struct DiscoverView: View {
                         .buttonStyle(.bordered)
                     }
                     .padding()
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
                 } else if viewModel.publicDecks.isEmpty {
                     VStack(spacing: 16) {
                         Image(systemName: "safari.fill")
@@ -51,18 +61,10 @@ struct DiscoverView: View {
                             .multilineTextAlignment(.center)
                     }
                     .padding()
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
                 } else {
-                    List(viewModel.publicDecks) { deck in
-                        // Routing aman ke halaman pratinjau detail deck
-                        NavigationLink {
-                            DiscoverDeckDetailView(deck: deck)
-                        } label: {
-                            // Memanggil komponen yang sudah dipisah ke file _DiscoverDeckRowView.swift
-                            _DiscoverDeckRowView(deck: deck, viewModel: viewModel)
-                        }
-                        .buttonStyle(.plain)
-                    }
-                    .listStyle(.plain)
+                    // 2. Memanggil Helper Layout Dinamis
+                    decksContentView
                 }
             }
             .navigationTitle("Discover")
@@ -84,6 +86,48 @@ struct DiscoverView: View {
                 }
             }
         }
+    }
+    
+    // MARK: - Komponen View Terpisah
+    
+    @ViewBuilder
+    private var decksContentView: some View {
+        if sizeClass == .compact {
+            // Tampilan iPhone: Menggunakan List bawaan
+            List(viewModel.publicDecks) { deck in
+                deckRowLink(for: deck)
+            }
+            .listStyle(.plain)
+        } else {
+            // Tampilan iPad & Mac: Menggunakan Grid dan dibatasi lebarnya
+            ScrollView {
+                LazyVGrid(columns: columns, spacing: 16) {
+                    ForEach(viewModel.publicDecks) { deck in
+                        deckRowLink(for: deck)
+                            // Menambahkan padding sedikit agar mirip kotak kartu di Grid
+                            .padding()
+                            .background(
+                                RoundedRectangle(cornerRadius: 12)
+                                    .fill(Color(.secondarySystemBackground))
+                            )
+                    }
+                }
+                .padding()
+                // Membatasi lebar agar tidak melar di layar ultra-wide
+                .frame(maxWidth: 1000)
+                .frame(maxWidth: .infinity, alignment: .top)
+            }
+        }
+    }
+    
+    // Helper untuk membungkus NavigationLink agar kode tidak berulang
+    private func deckRowLink(for deck: Deck) -> some View {
+        NavigationLink {
+            DiscoverDeckDetailView(deck: deck)
+        } label: {
+            _DiscoverDeckRowView(deck: deck, viewModel: viewModel)
+        }
+        .buttonStyle(.plain)
     }
 }
 

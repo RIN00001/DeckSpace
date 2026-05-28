@@ -11,11 +11,19 @@ struct HomeView: View {
     @EnvironmentObject private var authViewModel: AuthViewModel
     @StateObject private var deckViewModel = DeckViewModel()
     
+    // 1. Deteksi ukuran layar
+    @Environment(\.horizontalSizeClass) private var sizeClass
+    
+    // Konfigurasi kolom Grid untuk tampilan iPad & Mac
+    private var columns: [GridItem] {
+        [GridItem(.adaptive(minimum: 320, maximum: .infinity), spacing: 16)]
+    }
+    
     // Mendapatkan nama hari saat ini (contoh: "Monday", "Tuesday", dst.)
     private var currentDayName: String {
         let formatter = DateFormatter()
         formatter.dateFormat = "EEEE"
-        formatter.locale = Locale(identifier: "en_US") // Menyesuaikan dengan string array di _DeckFormView
+        formatter.locale = Locale(identifier: "en_US")
         return formatter.string(from: Date())
     }
     
@@ -30,7 +38,8 @@ struct HomeView: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 24) {
-                    // Bagian Header Pengguna
+                    
+                    // MARK: - Header Pengguna
                     VStack(alignment: .leading, spacing: 6) {
                         Text("Welcome, \(authViewModel.currentUser?.username ?? "User")")
                             .font(.title)
@@ -42,7 +51,7 @@ struct HomeView: View {
                     }
                     .padding(.horizontal)
                     
-                    // Bagian Daftar Jadwal Belajar Hari Ini
+                    // MARK: - Daftar Jadwal Belajar
                     VStack(alignment: .leading, spacing: 14) {
                         Text("Jadwal Belajar Hari Ini")
                             .font(.title2)
@@ -54,19 +63,29 @@ struct HomeView: View {
                                 .frame(maxWidth: .infinity, minHeight: 150)
                         } else if scheduledDecks.isEmpty {
                             allCaughtUpView
+                                .padding(.horizontal)
                         } else {
-                            ForEach(scheduledDecks) { deck in
-                                NavigationLink {
-                                    HomeDeckDetailView(deck: deck)
-                                } label: {
-                                    scheduledDeckCard(deck: deck)
+                            // 2. Kondisional Layout berdasarkan ukuran layar
+                            if sizeClass == .compact {
+                                // Tampilan iPhone: Stack Vertikal
+                                VStack(spacing: 14) {
+                                    deckCardsList
                                 }
-                                .buttonStyle(.plain)
+                                .padding(.horizontal)
+                            } else {
+                                // Tampilan iPad & Mac: Grid Berjejer ke Samping
+                                LazyVGrid(columns: columns, spacing: 16) {
+                                    deckCardsList
+                                }
+                                .padding(.horizontal)
                             }
                         }
                     }
                 }
                 .padding(.vertical)
+                // 3. Batasi lebar konten maksimal di iPad/Mac agar tidak melar dari ujung ke ujung
+                .frame(maxWidth: sizeClass == .compact ? .infinity : 1000)
+                .frame(maxWidth: .infinity, alignment: .top)
             }
             .navigationTitle("Home")
             .task {
@@ -75,6 +94,19 @@ struct HomeView: View {
             .refreshable {
                 await deckViewModel.fetchDecks()
             }
+        }
+    }
+
+    // Builder untuk list kartu deck agar tidak ada duplikasi kode
+    @ViewBuilder
+    private var deckCardsList: some View {
+        ForEach(scheduledDecks) { deck in
+            NavigationLink {
+                HomeDeckDetailView(deck: deck)
+            } label: {
+                scheduledDeckCard(deck: deck)
+            }
+            .buttonStyle(.plain)
         }
     }
 
@@ -99,10 +131,9 @@ struct HomeView: View {
             RoundedRectangle(cornerRadius: 18)
                 .fill(Color(.secondarySystemBackground))
         )
-        .padding(.horizontal)
     }
 
-    // Komponen baris jadwal deck
+    // Komponen baris jadwal deck (Horizontal padding dilepas agar fleksibel dimasukkan ke Grid)
     private func scheduledDeckCard(deck: Deck) -> some View {
         HStack(spacing: 16) {
             ZStack {
@@ -142,7 +173,6 @@ struct HomeView: View {
             RoundedRectangle(cornerRadius: 18)
                 .fill(Color(.secondarySystemBackground))
         )
-        .padding(.horizontal)
     }
 
     // Helper untuk mengubah nama hari ke Bahasa Indonesia di antarmuka
