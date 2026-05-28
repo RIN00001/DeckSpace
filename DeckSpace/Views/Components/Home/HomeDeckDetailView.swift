@@ -8,11 +8,11 @@
 import SwiftUI
 
 struct HomeDeckDetailView: View {
+    // 1. Tambahkan userId agar bisa dioper ke StudySessionView
+    let userId: String
     let deck: Deck
 
     @StateObject private var stageViewModel = StageViewModel()
-    
-    // 1. Tambahkan deteksi ukuran layar (Compact vs Regular)
     @Environment(\.horizontalSizeClass) private var sizeClass
 
     private var deckId: String {
@@ -35,7 +35,6 @@ struct HomeDeckDetailView: View {
                 }
             }
             .padding()
-            // 2. Kunci lebar konten di iPad/Mac agar tetap proporsional di tengah
             .frame(maxWidth: sizeClass == .compact ? .infinity : 700)
             .frame(maxWidth: .infinity, alignment: .top)
         }
@@ -97,24 +96,39 @@ struct HomeDeckDetailView: View {
         }
     }
 
+    // 2. Ubah Button menjadi NavigationLink yang mengarah ke StudySessionView
     private var startSessionButton: some View {
-        Button {
-            // TODO: Aksi untuk memicu sesi belajar flashcard
-            print("Mulai sesi belajar untuk deck: \(deck.title)")
-        } label: {
-            HStack {
-                Image(systemName: "play.fill")
-                Text("Start Session")
-                    .fontWeight(.semibold)
+        Group {
+            if let firstStage = stageViewModel.stages.first {
+                NavigationLink(destination: StudySessionView(userId: userId, deck: deck, stage: firstStage)) {
+                    HStack {
+                        Image(systemName: "play.fill")
+                        Text("Start Session")
+                            .fontWeight(.semibold)
+                    }
+                    .font(.headline)
+                    .foregroundStyle(.white)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 14)
+                    .background(Color.accentColor)
+                    .clipShape(RoundedRectangle(cornerRadius: 14))
+                }
+            } else {
+                // Tampilan fallback saat data stage masih kosong/loading
+                HStack {
+                    Image(systemName: "play.fill")
+                    Text("Start Session")
+                        .fontWeight(.semibold)
+                }
+                .font(.headline)
+                .foregroundStyle(.white)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 14)
+                .background(Color.gray)
+                .clipShape(RoundedRectangle(cornerRadius: 14))
+                .disabled(true)
             }
-            .font(.headline)
-            .foregroundStyle(.white)
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 14)
-            .background(stageViewModel.stages.isEmpty ? Color.gray : Color.accentColor)
-            .clipShape(RoundedRectangle(cornerRadius: 14))
         }
-        .disabled(stageViewModel.stages.isEmpty)
     }
 
     private var stageSection: some View {
@@ -136,6 +150,7 @@ struct HomeDeckDetailView: View {
             } else {
                 LazyVStack(spacing: 12) {
                     ForEach(stageViewModel.stages) { stage in
+                        // 3. Opsional: Kamu juga bisa bungkus row ini dengan NavigationLink jika ingin masuk lewat stage spesifik
                         _HomeStageRowView(stage: stage)
                     }
                 }

@@ -16,16 +16,17 @@ struct ParagraphInterface: View {
     
     @Binding var paragraphUserText: String
     @Binding var isParagraphAnswerRevealed: Bool
+    let isLargeScreen: Bool
     
     var body: some View {
-        VStack(alignment:.leading, spacing: 12) {
+        VStack(alignment:.leading, spacing: isLargeScreen ? 18 : 12) {
             if !isParagraphAnswerRevealed {
                 Text("Type your response memo:")
                     .font(.caption)
                     .foregroundColor(.secondary)
                 
                 TextEditor(text: $paragraphUserText)
-                    .frame(height: 180)
+                    .frame(height: isLargeScreen ? 260 : 180)
                     .padding(8)
                     .overlay(
                         RoundedRectangle(cornerRadius: 10).stroke(Color.gray.opacity(0.2), lineWidth: 1)
@@ -35,9 +36,9 @@ struct ParagraphInterface: View {
                     isParagraphAnswerRevealed = true
                 } label : {
                     Text("Reveal Model Guideline")
-                        .font(.subheadline.bold())
+                        .font(isLargeScreen ? .body.bold() : .subheadline.bold())
                         .frame(maxWidth: .infinity)
-                        .padding()
+                        .padding(isLargeScreen ? 18 : 14)
                         .background(Color.accentColor)
                         .foregroundColor(.white)
                         .cornerRadius(12)
@@ -48,23 +49,25 @@ struct ParagraphInterface: View {
                 
                 
             } else {
-                VStack(alignment: .leading, spacing: 10) {
+                VStack(alignment: .leading, spacing: isLargeScreen ? 16 : 12) {
                     Text("Your Draft:")
-                        .font(.caption.bold())
+                        .font(isLargeScreen ? .body.bold() : .caption.bold())
                         .foregroundColor(.secondary)
                     Text(paragraphUserText.isEmpty ? "[No response recorded]" : paragraphUserText)
-                        .font(.body)
+                        .padding()
+                        .font(isLargeScreen ? .title3 : .body)
                         .italic()
                     
                     Divider()
                     
                     Text("Model Guideline Matrix:")
-                        .font(.caption.bold())
-                        .foregroundColor(.green)
+                        .font(isLargeScreen ? .body.bold() : .caption.bold())
+                        .foregroundColor(.secondary)
                     Text(currentItem.dynamicChoices.first(where: { $0.isCorrect })?.text ?? "No guide metrics provided.")
-                        .font(.body)
+                        .padding()
+                        .font(isLargeScreen ? .title3 : .body)
                     
-                    HStack(spacing: 12) {
+                    HStack(spacing: isLargeScreen ? 20 : 12) {
                         Button {
                             Task {
                                 let failedGrade = Answer(id: "self_wrong", flashcardId: currentItem.flashcard.id!, text: "Incorrect", isCorrect: false)
@@ -72,10 +75,10 @@ struct ParagraphInterface: View {
                             }
                         } label: {
                             Text("Incorrect (Salah)")
-                                .font(.subheadline.bold())
+                                .font(isLargeScreen ? .body.bold() : .subheadline.bold())
                                 .foregroundColor(.red)
                                 .frame(maxWidth: .infinity)
-                                .padding()
+                                .padding(isLargeScreen ? 16 : 12)
                                 .background(Color.red.opacity(0.1))
                                 .cornerRadius(12)
                         }
@@ -88,10 +91,10 @@ struct ParagraphInterface: View {
                             }
                         } label: {
                             Text("Correct (Benar)")
-                                .font(.subheadline.bold())
+                                .font(isLargeScreen ? .body.bold() : .subheadline.bold())
                                 .foregroundColor(.white)
                                 .frame(maxWidth: .infinity)
-                                .padding()
+                                .padding(isLargeScreen ? 16 : 12)
                                 .background(Color.green)
                                 .cornerRadius(12)
                         }
@@ -107,4 +110,3 @@ struct ParagraphInterface: View {
         await studySession.evaluaeAnswer(selectedAnswer: scoreAnswer, userId: userId, deckId: deckId, stage: stage)
     }
 }
-

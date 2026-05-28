@@ -102,7 +102,8 @@ struct HomeView: View {
     private var deckCardsList: some View {
         ForEach(scheduledDecks) { deck in
             NavigationLink {
-                HomeDeckDetailView(deck: deck)
+                // DI SINI PERUBAHANNYA: Sekarang mengoper userId dari authViewModel
+                HomeDeckDetailView(userId: authViewModel.currentUser?.id ?? "", deck: deck)
             } label: {
                 scheduledDeckCard(deck: deck)
             }

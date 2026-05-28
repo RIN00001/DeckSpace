@@ -13,11 +13,12 @@ struct IntroCardInterface: View {
     let userId: String
     let deckId: String
     let stage: Stage
+    let isLargeScreen: Bool
     
     var body: some View {
-        VStack(spacing: 16) {
+        VStack(spacing: isLargeScreen ? 24 : 16) {
             Text(currentItem.flashcard.explanationText ?? "No reference definition specified")
-                .font(.body)
+                .font(isLargeScreen ? .title3 : .body)
                 .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal)
@@ -29,10 +30,10 @@ struct IntroCardInterface: View {
                 }
             } label: {
                 Text("Continue")
-                    .font(.headline)
+                    .font(isLargeScreen ? .body.bold() : .headline)
                     .foregroundColor(.white)
                     .frame(maxWidth: .infinity)
-                    .padding()
+                    .padding(isLargeScreen ? 18 : 14)
                     .background(Color.accentColor)
                     .cornerRadius(12)
             }

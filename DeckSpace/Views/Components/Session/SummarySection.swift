@@ -13,35 +13,36 @@ struct SummarySection: View {
     let userId: String
     let deckId: String
     let stage: Stage
+    let isLargeScreen: Bool
     
     let onTryAgain: () -> Void
     
     var body: some View {
-        VStack(spacing: 24) {
+        VStack(spacing: isLargeScreen ? 40 : 24) {
             Spacer()
             ZStack {
                 // Color chage based on if you pass or not
                 Circle()
                     .fill(studySession.wasStagePassed ? Color.green.opacity(0.15) : Color.red.opacity(0.15))
-                    .frame(width: 100, height: 100)
+                    .frame(width: isLargeScreen ? 160 : 100, height: isLargeScreen ? 160 : 100)
                 
                 // Pass or not indication
                 Image(systemName: studySession.wasStagePassed ? "checkmark.seal.fill" : "xmark.seal.fill")
-                    .font(.system(size: 48))
+                    .font(.system(size: isLargeScreen ? 72 : 48))
                     .foregroundColor(studySession.wasStagePassed ? .green : .red)
             }
             
             // Small summary  for indication if you pass or not and score
-            VStack(spacing: 8) {
+            VStack(spacing: isLargeScreen ? 16 : 8) {
                 Text(studySession.wasStagePassed ? "Stage Cleared!" : "Score Target Failed")
-                    .font(.title.bold())
+                    .font(isLargeScreen ? .largeTitle.bold() : .title.bold())
                 
                 Text("Accuracy score: \(Int(studySession.finalScoreRate * 100))%")
-                    .font(.body)
+                    .font(isLargeScreen ? .title2 : .body)
                     .foregroundColor(.secondary)
                 
                 Text("(Required benchmark parameter: 70%)")
-                    .font(.caption)
+                    .font(isLargeScreen ? .body : .caption)
                     .foregroundColor(.secondary)
             }
             
@@ -55,7 +56,7 @@ struct SummarySection: View {
                 }
             } label: {
                 Text(studySession.wasStagePassed ? "Finish Session" : "Try Again")
-                    .font(.headline)
+                    .font(isLargeScreen ? .title3.bold() : .headline)
                     .foregroundColor(.white)
                     .frame(maxWidth: .infinity)
                     .padding()
@@ -63,5 +64,6 @@ struct SummarySection: View {
                     .cornerRadius(14)
             }
         }
+        .frame(minHeight: isLargeScreen ? 500 : 300)
     }
 }

@@ -9,13 +9,14 @@ import SwiftUI
 
 struct EmptyStageStateSection: View {
     @Environment(\.dismiss) private var dismiss
+    let isLargeScreen: Bool
     var body: some View {
-        VStack(spacing: 12) {
+        VStack(spacing: isLargeScreen ? 24 : 12) {
             Spacer()
             Image(systemName: "tray.fill")
-                .font(.largeTitle)
+                .font(.system(size: isLargeScreen ? 64 : 40))
                 .foregroundColor(.secondary)
-            HStack(spacing: 12) {
+            HStack(spacing: isLargeScreen ? 20 : 12) {
                 Text("No flashcards found configured for this stage.")
                     .font(.subheadline)
                     .foregroundColor(.secondary)
@@ -23,17 +24,19 @@ struct EmptyStageStateSection: View {
                     dismiss()
                 } label: {
                     Text("Return")
-                        .font(.headline)
+                        .font(isLargeScreen ? .body.bold() : .headline)
                         .foregroundColor(.white)
-                        .frame(maxWidth: .infinity)
-                        .padding()
+                        .frame(maxWidth: isLargeScreen ? 240 : .infinity)
+                        .padding(isLargeScreen ? 16 : 12)
                         .background(Color.blue)
                         .cornerRadius(14)
                 }
+                .buttonStyle(.plain)
             }
+            .padding(.horizontal, isLargeScreen ? 40 : 16)
 
             Spacer()
         }
+        .frame(minHeight: isLargeScreen ? 400 : 200)
     }
 }
-

@@ -13,10 +13,11 @@ struct multipleChoiceInterface: View {
     let userId: String
     let deckId: String
     let stage: Stage
+    let isLargeScreen: Bool
     
     var body: some View {
         ScrollView {
-            VStack(spacing: 10) {
+            VStack(spacing: isLargeScreen ? 14 : 10) {
                 ForEach(choices) { choice in
                     Button {
                         Task {
@@ -25,13 +26,14 @@ struct multipleChoiceInterface: View {
                     } label: {
                         HStack {
                             Text(choice.text)
-                                .font(.body)
+                                .font(isLargeScreen ? .title3 : .body)
                                 .multilineTextAlignment(.leading)
                             Spacer()
                             Image(systemName: "circle")
+                                .font(isLargeScreen ? .title3 : .body)
                                 .foregroundColor(.secondary)
                         }
-                        .padding()
+                        .padding(isLargeScreen ? 20 : 14)
                         .frame(maxWidth: .infinity)
                         .background(
                             RoundedRectangle(cornerRadius: 12)
