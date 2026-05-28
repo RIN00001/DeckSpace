@@ -8,7 +8,7 @@
 import SwiftUI
 
 struct SessionHeaderSection: View {
-    let studySession: StudySessionViewModel
+    @ObservedObject var studySession: StudySessionViewModel
     var body: some View {
         VStack(spacing: 8) {
             HStack {

@@ -7,6 +7,7 @@
 
 import Foundation
 import Combine
+import FirebaseFirestore
 
 @MainActor
 final class StudySessionViewModel: ObservableObject {
@@ -33,6 +34,8 @@ final class StudySessionViewModel: ObservableObject {
     }
     
     func buildSessionQUeue(userId: String, deckId: String, stageId: String) async {
+        guard sessionItems.isEmpty else { return }
+        
         isLoading = true
         errorMessage = nil
         
@@ -101,7 +104,18 @@ final class StudySessionViewModel: ObservableObject {
             
             // Auto-unlock next stage if pass (score over or equal 70)
             if wasStagePassed {
-                try await service.unlockNextStage(userId: userId, deckId: deckId, currentStageOrderIndex: stage.orderIndex)
+                let remainingSnapshot = try await Firestore.firestore()
+                    .collection("users").document(userId)
+                    .collection("decks").document(deckId)
+                    .collection("stages")
+                    .whereField("orderIndex", isGreaterThan: stage.orderIndex)
+                    .getDocuments()
+                
+                if remainingSnapshot.documents.isEmpty {
+                    try await service.resetDeckProgressionForReplay(userId: userId, deckId: deckId)
+                } else {
+                    try await service.unlockNextStage(userId: userId, deckId: deckId, currentStageOrderIndex: stage.orderIndex)
+                }
             }
             
             self.isSessionFinished = true

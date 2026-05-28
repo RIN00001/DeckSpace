@@ -11,6 +11,7 @@ import FirebaseAuth
 struct DeckDetailView: View {
     let deck: Deck
     
+
     @State private var editableDeck: Deck
     
     @StateObject private var stageViewModel = StageViewModel()
@@ -31,16 +32,22 @@ struct DeckDetailView: View {
     }
     
     private var activeStage: Stage? {
-        stageViewModel.stages.first(where: { $0.isUnlocked && !$0.isCompleted }) ?? stageViewModel.stages.first
+        let sortedStages = stageViewModel.stages.sorted { $0.orderIndex < $1.orderIndex }
+      
+        if let nextStage = sortedStages.first(where: { $0.isUnlocked && !$0.isCompleted }) {
+            return nextStage
+        }
+ 
+        return sortedStages.first
     }
-
+    
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
                 deckHeader
-
+                
                 stageSection
-
+                
                 if let errorMessage = stageViewModel.errorMessage {
                     Text(errorMessage)
                         .font(.footnote)
@@ -113,7 +120,7 @@ struct DeckDetailView: View {
                         .disabled(isPublishing || stageViewModel.stages.isEmpty)
                     }
                 }
-
+                
                 Button {
                     showingAddStageSheet = true
                 } label: {
@@ -152,7 +159,7 @@ struct DeckDetailView: View {
             .presentationDetents([.medium])
         }
     }
-
+    
     private var deckHeader: some View {
         VStack(alignment: .leading, spacing: 14) {
             HStack(spacing: 14) {
@@ -161,11 +168,13 @@ struct DeckDetailView: View {
                         .fill(Color.accentColor.opacity(0.16))
                         .frame(width: 70, height: 70)
 
+
                     Image(systemName: editableDeck.coverIconName ?? "book.closed.fill")
+
                         .font(.system(size: 32))
                         .foregroundStyle(Color.accentColor)
                 }
-
+                
                 VStack(alignment: .leading, spacing: 6) {
                     Text(editableDeck.title)
                         .font(.title2)
@@ -182,8 +191,10 @@ struct DeckDetailView: View {
                 }
             }
 
+
             if !editableDeck.description.isEmpty {
                 Text(editableDeck.description)
+
                     .font(.body)
                     .foregroundStyle(.secondary)
             }
@@ -201,7 +212,7 @@ struct DeckDetailView: View {
             Divider()
         }
     }
-
+    
     private var stageSection: some View {
         VStack(alignment: .leading, spacing: 14) {
             Text("Stages")

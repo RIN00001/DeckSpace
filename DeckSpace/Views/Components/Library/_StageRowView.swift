@@ -64,6 +64,10 @@ struct _StageRowView: View {
     }
 
     private var iconName: String {
+        if stage.bestCorrectRate >= 0.70 {
+            return "checkmark"
+        }
+        
         if stage.isCompleted {
             return "checkmark"
         }
@@ -76,6 +80,10 @@ struct _StageRowView: View {
     }
 
     private var iconBackgroundColor: Color {
+        if stage.bestCorrectRate >= 0.70 {
+            return Color.green.opacity(0.18)
+        }
+        
         if stage.isCompleted {
             return Color.green.opacity(0.18)
         }
@@ -88,6 +96,10 @@ struct _StageRowView: View {
     }
 
     private var iconForegroundColor: Color {
+        if stage.bestCorrectRate >= 0.70 {
+            return .green
+        }
+        
         if stage.isCompleted {
             return .green
         }

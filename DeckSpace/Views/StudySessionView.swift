@@ -12,7 +12,7 @@ struct StudySessionView: View {
     let deck: Deck
     let stage: Stage
     
-    @StateObject private var studySession = StudySessionViewModel()
+    @ObservedObject private var studySession = StudySessionViewModel()
     @Environment(\.dismiss) private var dismiss
     
     @State private var paragraphUserText: String = ""

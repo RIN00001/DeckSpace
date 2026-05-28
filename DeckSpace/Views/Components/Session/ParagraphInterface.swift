@@ -9,7 +9,7 @@ import SwiftUI
 
 struct ParagraphInterface: View {
     let currentItem: SessionItem
-    let studySession: StudySessionViewModel
+    @ObservedObject var studySession: StudySessionViewModel
     let userId: String
     let deckId: String
     let stage: Stage
@@ -61,7 +61,7 @@ struct ParagraphInterface: View {
                     Text("Model Guideline Matrix:")
                         .font(.caption.bold())
                         .foregroundColor(.green)
-                    Text(currentItem.flashcard.explanationText ?? "No guide metrics provided.")
+                    Text(currentItem.dynamicChoices.first(where: { $0.isCorrect })?.text ?? "No guide metrics provided.")
                         .font(.body)
                     
                     HStack(spacing: 12) {

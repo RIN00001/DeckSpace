@@ -54,13 +54,46 @@ final class StudySessionService {
     func unlockNextStage(userId: String, deckId: String, currentStageOrderIndex: Int) async throws {
         let stageCollection = db.collection("users").document(userId).collection("decks").document(deckId).collection("stages")
         
-        let snapshot = try await stageCollection.whereField("orderIndex", isGreaterThan: currentStageOrderIndex).order(by: "orderIndex").limit(to: 1)
+        let snapshot = try await stageCollection
+            .whereField("orderIndex", isGreaterThan: currentStageOrderIndex)
+            .order(by: "orderIndex")
+            .limit(to: 1)
             .getDocuments()
         
         if let nextStageDoc = snapshot.documents.first {
             try await nextStageDoc.reference.updateData(["isUnlocked": true])
+
+            try await db.collection("users").document(userId).collection("decks").document(deckId)
+                .updateData(["currentStageId": nextStageDoc.documentID])
+        }
+    }
+    
+    func resetDeckProgressionForReplay(userId: String, deckId: String) async throws {
+        let stageCollection = db.collection("users").document(userId).collection("decks").document(deckId).collection("stages")
+        let snapshot = try await stageCollection.getDocuments()
+        
+        var firstStageId: String? = nil
+        
+        for doc in snapshot.documents {
+            let orderIndex = doc.data()["orderIndex"] as? Int ?? 0
             
-            try await db.collection("users").document(userId).collection("decks").document(deckId).updateData(["currentStageId": nextStageDoc.documentID])
+            var updateValues: [String: Any] = [
+                "isCompleted": false
+            ]
+            
+            if orderIndex == 0 {
+                firstStageId = doc.documentID
+                updateValues["isUnlocked"] = true
+            } else {
+                updateValues["isUnlocked"] = false
+            }
+            
+            try await doc.reference.updateData(updateValues)
+        }
+        
+        if let firstStageId = firstStageId {
+            try await db.collection("users").document(userId).collection("decks").document(deckId)
+                .updateData(["currentStageId": firstStageId])
         }
     }
 }
