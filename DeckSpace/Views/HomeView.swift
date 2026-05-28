@@ -57,7 +57,7 @@ struct HomeView: View {
                         } else {
                             ForEach(scheduledDecks) { deck in
                                 NavigationLink {
-                                    DeckDetailView(deck: deck)
+                                    HomeDeckDetailView(deck: deck)
                                 } label: {
                                     scheduledDeckCard(deck: deck)
                                 }
