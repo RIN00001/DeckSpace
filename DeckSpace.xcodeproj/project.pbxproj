@@ -13,14 +13,30 @@
 		3F7958A52FBE9BA900F258B1 /* FirebaseFirestore in Frameworks */ = {isa = PBXBuildFile; productRef = 3F7958A42FBE9BA900F258B1 /* FirebaseFirestore */; };
 /* End PBXBuildFile section */
 
+/* Begin PBXContainerItemProxy section */
+		3FC503712FC8149B009198C7 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 3F61457C2FAC62C300E673BC /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 3F6145832FAC62C300E673BC;
+			remoteInfo = DeckSpace;
+		};
+/* End PBXContainerItemProxy section */
+
 /* Begin PBXFileReference section */
 		3F6145842FAC62C300E673BC /* DeckSpace.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = DeckSpace.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		3FC5036D2FC8149B009198C7 /* DeckSpaceTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = DeckSpaceTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		3F6145862FAC62C300E673BC /* DeckSpace */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = DeckSpace;
+			sourceTree = "<group>";
+		};
+		3FC5036E2FC8149B009198C7 /* DeckSpaceTests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = DeckSpaceTests;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -37,6 +53,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		3FC5036A2FC8149B009198C7 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -44,6 +67,7 @@
 			isa = PBXGroup;
 			children = (
 				3F6145862FAC62C300E673BC /* DeckSpace */,
+				3FC5036E2FC8149B009198C7 /* DeckSpaceTests */,
 				3F79589D2FBE9B9500F258B1 /* Frameworks */,
 				3F6145852FAC62C300E673BC /* Products */,
 			);
@@ -53,6 +77,7 @@
 			isa = PBXGroup;
 			children = (
 				3F6145842FAC62C300E673BC /* DeckSpace.app */,
+				3FC5036D2FC8149B009198C7 /* DeckSpaceTests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -93,6 +118,29 @@
 			productReference = 3F6145842FAC62C300E673BC /* DeckSpace.app */;
 			productType = "com.apple.product-type.application";
 		};
+		3FC5036C2FC8149B009198C7 /* DeckSpaceTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 3FC503732FC8149B009198C7 /* Build configuration list for PBXNativeTarget "DeckSpaceTests" */;
+			buildPhases = (
+				3FC503692FC8149B009198C7 /* Sources */,
+				3FC5036A2FC8149B009198C7 /* Frameworks */,
+				3FC5036B2FC8149B009198C7 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				3FC503722FC8149B009198C7 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				3FC5036E2FC8149B009198C7 /* DeckSpaceTests */,
+			);
+			name = DeckSpaceTests;
+			packageProductDependencies = (
+			);
+			productName = DeckSpaceTests;
+			productReference = 3FC5036D2FC8149B009198C7 /* DeckSpaceTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -100,11 +148,15 @@
 			isa = PBXProject;
 			attributes = {
 				BuildIndependentTargetsInParallel = 1;
-				LastSwiftUpdateCheck = 2640;
+				LastSwiftUpdateCheck = 2650;
 				LastUpgradeCheck = 2650;
 				TargetAttributes = {
 					3F6145832FAC62C300E673BC = {
 						CreatedOnToolsVersion = 26.4.1;
+					};
+					3FC5036C2FC8149B009198C7 = {
+						CreatedOnToolsVersion = 26.5;
+						TestTargetID = 3F6145832FAC62C300E673BC;
 					};
 				};
 			};
@@ -126,12 +178,20 @@
 			projectRoot = "";
 			targets = (
 				3F6145832FAC62C300E673BC /* DeckSpace */,
+				3FC5036C2FC8149B009198C7 /* DeckSpaceTests */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
 		3F6145822FAC62C300E673BC /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		3FC5036B2FC8149B009198C7 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -148,7 +208,22 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		3FC503692FC8149B009198C7 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		3FC503722FC8149B009198C7 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 3F6145832FAC62C300E673BC /* DeckSpace */;
+			targetProxy = 3FC503712FC8149B009198C7 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		3F61458D2FAC62C300E673BC /* Debug */ = {
@@ -334,6 +409,48 @@
 			};
 			name = Release;
 		};
+		3FC503742FC8149B009198C7 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.4;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = Exercise.DeckSpaceTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/DeckSpace.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/DeckSpace";
+			};
+			name = Debug;
+		};
+		3FC503752FC8149B009198C7 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.4;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = Exercise.DeckSpaceTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/DeckSpace.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/DeckSpace";
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -351,6 +468,15 @@
 			buildConfigurations = (
 				3F6145902FAC62C300E673BC /* Debug */,
 				3F6145912FAC62C300E673BC /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		3FC503732FC8149B009198C7 /* Build configuration list for PBXNativeTarget "DeckSpaceTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				3FC503742FC8149B009198C7 /* Debug */,
+				3FC503752FC8149B009198C7 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
