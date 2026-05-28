@@ -80,7 +80,7 @@ struct FlashcardDetailView: View {
             await fetchAnswersIfNeeded()
         }
         .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
+            ToolbarItem(placement: .navigationBarTrailing) {
                 if canEditFlashcard {
                     NavigationLink {
                         EditFlashcardView(

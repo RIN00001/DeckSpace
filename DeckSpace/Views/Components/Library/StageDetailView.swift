@@ -39,6 +39,10 @@ struct StageDetailView: View {
     private var canEditStage: Bool {
         isOwner && !deck.isPublished
     }
+    
+    private var sortedFlashcards: [Flashcard] {
+        flashcardViewModel.flashcards.sorted { $0.orderIndex < $1.orderIndex }
+    }
 
     var body: some View {
         List {
@@ -69,7 +73,7 @@ struct StageDetailView: View {
                     emptyFlashcardView
                         .listRowSeparator(.hidden)
                 } else {
-                    ForEach(flashcardViewModel.flashcards) { flashcard in
+                    ForEach(sortedFlashcards) { flashcard in
                         NavigationLink {
                             FlashcardDetailView(
                                 deck: deck,
@@ -114,6 +118,11 @@ struct StageDetailView: View {
                                 stageId: stageId,
                                 from: source,
                                 to: destination
+                            )
+
+                            await flashcardViewModel.fetchFlashcards(
+                                deckId: deckId,
+                                stageId: stageId
                             )
                         }
                     }

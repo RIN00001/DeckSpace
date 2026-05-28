@@ -57,7 +57,7 @@ struct _StageRowView: View {
                 .lineLimit(2)
                 .multilineTextAlignment(.leading)
 
-            HStack(spacing: 8) {
+            VStack(alignment: .leading, spacing: 8) {
                 Text("Stage \(stage.orderIndex + 1)")
                     .font(.caption)
                     .fontWeight(.semibold)
@@ -73,14 +73,13 @@ struct _StageRowView: View {
     }
 
     private var metadataRow: some View {
-        HStack(spacing: 10) {
+        VStack(alignment: .leading, spacing: 8) {
             Label("\(Int(stage.requiredCorrectRate * 100))% required", systemImage: "target")
 
             Label("\(Int(stage.bestCorrectRate * 100))% best", systemImage: "chart.line.uptrend.xyaxis")
         }
         .font(.caption)
         .foregroundStyle(.secondary)
-        .lineLimit(1)
     }
 
     private var statusBadge: some View {

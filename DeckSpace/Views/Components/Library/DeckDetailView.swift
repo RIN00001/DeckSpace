@@ -74,7 +74,7 @@ struct DeckDetailView: View {
                     emptyStageView
                         .listRowSeparator(.hidden)
                 } else {
-                    ForEach(stageViewModel.stages) { stage in
+                    ForEach(sortedStages) { stage in
                         NavigationLink {
                             StageDetailView(deck: editableDeck, stage: stage)
                         } label: {
@@ -84,10 +84,10 @@ struct DeckDetailView: View {
                         .listRowSeparator(.hidden)
                         .listRowInsets(
                             EdgeInsets(
-                                top: 6,
-                                leading: 16,
-                                bottom: 6,
-                                trailing: 16
+                                top: 8,
+                                leading: 20,
+                                bottom: 8,
+                                trailing: 20
                             )
                         )
                         .contextMenu {
@@ -98,7 +98,7 @@ struct DeckDetailView: View {
                                             deckId: deckId,
                                             stage: stage
                                         )
-                                        
+
                                         editableDeck.stageCount = max(
                                             0,
                                             editableDeck.stageCount - 1
@@ -112,13 +112,15 @@ struct DeckDetailView: View {
                     }
                     .onMove { source, destination in
                         guard canEditDeck else { return }
-                        
+
                         Task {
                             await stageViewModel.moveStage(
                                 deckId: deckId,
                                 from: source,
                                 to: destination
                             )
+
+                            await stageViewModel.fetchStages(deckId: deckId)
                         }
                     }
                     .moveDisabled(!canEditDeck)
@@ -154,7 +156,7 @@ struct DeckDetailView: View {
             }
         }
         .toolbar {
-            ToolbarItemGroup(placement: .topBarTrailing) {
+            ToolbarItemGroup(placement: .navigationBarTrailing) {
                 if canEditDeck {
                     NavigationLink {
                         EditDeckView(deck: editableDeck) { updatedDeck in
